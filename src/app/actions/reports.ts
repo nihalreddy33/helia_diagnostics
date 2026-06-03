@@ -2,151 +2,90 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { withRole } from "@/lib/auth";
+import { describePrismaError } from "@/lib/prisma-errors";
 import { currentMonthYear } from "@/lib/types";
 import type { ActionResult, ReportStatus } from "@/lib/types";
-import type { Report } from "@prisma/client";
 
-type SaveReportArgs = {
-  reportId?: string;
-  patientId: string;
-  templateId?: string | null;
-  findings: string;
-  impression: string;
-  /** DRAFT keeps it editable; PENDING_REVIEW sends it to the admin queue. */
-  intent: Extract<ReportStatus, "DRAFT" | "PENDING_REVIEW">;
-};
+type SaveIntent = "DRAFT" | "APPROVED";
 
-function parseSaveArgs(formData: FormData): SaveReportArgs {
-  const reportId = String(formData.get("reportId") ?? "").trim() || undefined;
-  const templateId = String(formData.get("templateId") ?? "").trim() || null;
+function parse(formData: FormData) {
   return {
-    reportId,
+    reportId: String(formData.get("reportId") ?? "").trim() || undefined,
     patientId: String(formData.get("patientId") ?? "").trim(),
-    templateId,
+    templateId: String(formData.get("templateId") ?? "").trim() || null,
     findings: String(formData.get("findings") ?? "").trim(),
     impression: String(formData.get("impression") ?? "").trim(),
-    intent:
-      String(formData.get("intent") ?? "DRAFT") === "PENDING_REVIEW"
-        ? "PENDING_REVIEW"
-        : "DRAFT",
+    intent: (String(formData.get("intent") ?? "APPROVED") === "DRAFT"
+      ? "DRAFT"
+      : "APPROVED") as SaveIntent,
   };
 }
 
 /**
- * Radiologist action: create or update a report, either saving it as a DRAFT
- * or submitting it for review (PENDING_REVIEW).
+ * RADIOLOGIST only — transcribe and approve a report. Saving with intent
+ * APPROVED stamps `approvedAt`; DRAFT keeps it editable. Approved reports are
+ * locked from further edits.
  */
 export async function saveReport(
   formData: FormData,
 ): Promise<ActionResult<{ id: string; status: ReportStatus }>> {
-  const args = parseSaveArgs(formData);
+  const { reportId, patientId, templateId, findings, impression, intent } = parse(formData);
 
-  if (!args.patientId) return { ok: false, error: "A patient must be selected." };
-  if (args.intent === "PENDING_REVIEW") {
-    if (!args.findings) return { ok: false, error: "Findings cannot be empty before submitting." };
-    if (!args.impression) return { ok: false, error: "Impression cannot be empty before submitting." };
+  if (!patientId) return { ok: false, error: "A patient must be selected." };
+  if (intent === "APPROVED") {
+    if (!findings) return { ok: false, error: "Findings cannot be empty before approving." };
+    if (!impression) return { ok: false, error: "Impression cannot be empty before approving." };
   }
 
   try {
-    const user = await getCurrentUser();
+    const result = await withRole("RADIOLOGIST", async (user) => {
+      const approvedFields =
+        intent === "APPROVED"
+          ? { status: "APPROVED" as const, approvedAt: new Date() }
+          : { status: "DRAFT" as const };
 
-    let report: Pick<Report, "id" | "status">;
-    if (args.reportId) {
-      // Don't allow editing an already-approved (locked) report here.
-      const existing = await prisma.report.findUnique({
-        where: { id: args.reportId },
-        select: { status: true },
-      });
-      if (!existing) return { ok: false, error: "Report not found." };
-      if (existing.status === "APPROVED") {
-        return { ok: false, error: "This report is approved and locked." };
+      if (reportId) {
+        const existing = await prisma.report.findUnique({
+          where: { id: reportId },
+          select: { status: true },
+        });
+        if (!existing) throw new Error("NOT_FOUND");
+        if (existing.status === "APPROVED") throw new Error("LOCKED");
+
+        return prisma.report.update({
+          where: { id: reportId },
+          data: { templateId, findings, impression, radiologistId: user.id, ...approvedFields },
+          select: { id: true, status: true },
+        });
       }
-      report = await prisma.report.update({
-        where: { id: args.reportId },
+
+      return prisma.report.create({
         data: {
-          templateId: args.templateId,
-          findings: args.findings,
-          impression: args.impression,
-          status: args.intent,
-          radiologistId: user?.id ?? undefined,
-        },
-        select: { id: true, status: true },
-      });
-    } else {
-      report = await prisma.report.create({
-        data: {
-          patientId: args.patientId,
-          templateId: args.templateId,
-          findings: args.findings,
-          impression: args.impression,
-          status: args.intent,
-          radiologistId: user?.id ?? null,
+          patientId,
+          templateId,
+          findings,
+          impression,
+          radiologistId: user.id,
           createdMonthYear: currentMonthYear(),
+          ...approvedFields,
         },
         select: { id: true, status: true },
       });
-    }
-
-    revalidatePath("/radiologist");
-    revalidatePath("/admin");
-    return { ok: true, data: report };
-  } catch (err) {
-    console.error("saveReport failed", err);
-    return { ok: false, error: "Could not save the report. Please try again." };
-  }
-}
-
-/**
- * Admin action: optionally apply final edits, then approve & lock a report.
- * Sets status to APPROVED and stamps approvedAt.
- */
-export async function approveReport(
-  formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
-  const reportId = String(formData.get("reportId") ?? "").trim();
-  const findings = String(formData.get("findings") ?? "").trim();
-  const impression = String(formData.get("impression") ?? "").trim();
-
-  if (!reportId) return { ok: false, error: "Missing report id." };
-  if (!findings || !impression) {
-    return { ok: false, error: "Findings and impression are required to approve." };
-  }
-
-  try {
-    const existing = await prisma.report.findUnique({
-      where: { id: reportId },
-      select: { status: true },
-    });
-    if (!existing) return { ok: false, error: "Report not found." };
-    if (existing.status === "APPROVED") {
-      return { ok: false, error: "Report is already approved." };
-    }
-
-    await prisma.report.update({
-      where: { id: reportId },
-      data: {
-        findings,
-        impression,
-        status: "APPROVED",
-        approvedAt: new Date(),
-      },
     });
 
-    revalidatePath("/admin");
-    revalidatePath("/archive");
-    return { ok: true, data: { id: reportId } };
+    if (result.ok) {
+      revalidatePath("/radiologist");
+      revalidatePath("/receptionist/print");
+    }
+    return result;
   } catch (err) {
-    console.error("approveReport failed", err);
-    return { ok: false, error: "Could not approve the report. Please try again." };
+    if (err instanceof Error && err.message === "LOCKED") {
+      return { ok: false, error: "This report is approved and locked." };
+    }
+    if (err instanceof Error && err.message === "NOT_FOUND") {
+      return { ok: false, error: "Report not found." };
+    }
+    return { ok: false, error: describePrismaError(err, "Could not save the report.") };
   }
-}
-
-/** Fetch approved reports for a given "YYYY-MM" bucket (archive view). */
-export async function getReportsByMonth(monthYear: string) {
-  return prisma.report.findMany({
-    where: { status: "APPROVED", createdMonthYear: monthYear },
-    include: { patient: true, template: true, radiologist: true },
-    orderBy: { approvedAt: "desc" },
-  });
 }

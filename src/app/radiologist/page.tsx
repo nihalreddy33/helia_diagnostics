@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
-import { ReportEditor } from "@/components/ReportEditor";
-import type { QueuePatient, EditorTemplate } from "@/components/ReportEditor";
+import { RadiologistWorkspace } from "@/components/radiologist/RadiologistWorkspace";
+import type {
+  WorklistPatient,
+  WorklistTemplate,
+} from "@/components/radiologist/types";
 
 export const dynamic = "force-dynamic";
 
@@ -10,50 +13,71 @@ export default async function RadiologistPage() {
   const data = await safeQuery(async () => {
     const [patients, templates] = await Promise.all([
       prisma.patient.findMany({
-        orderBy: { createdAt: "desc" },
-        include: { reports: { orderBy: { createdAt: "desc" }, take: 1 } },
+        orderBy: { createdAt: "asc" },
+        include: {
+          reports: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              status: true,
+              findings: true,
+              impression: true,
+              templateId: true,
+            },
+          },
+        },
       }),
-      prisma.template.findMany({ orderBy: { title: "asc" } }),
+      prisma.template.findMany({
+        orderBy: { title: "asc" },
+        select: {
+          id: true,
+          title: true,
+          modality: true,
+          defaultFindings: true,
+          defaultImpression: true,
+        },
+      }),
     ]);
     return { patients, templates };
   });
 
   if (data === null) {
     return (
-      <PageShell>
+      <div className="space-y-6">
+        <Header />
         <DbErrorNotice />
-      </PageShell>
+      </div>
     );
   }
 
-  // Queue = patients still needing a report (none yet, or latest not approved).
-  const queue: QueuePatient[] = data.patients
+  // Worklist = patients awaiting transcription: no report yet, or latest is a DRAFT.
+  const worklist: WorklistPatient[] = data.patients
     .filter((p) => {
       const latest = p.reports[0];
       return !latest || latest.status !== "APPROVED";
     })
     .map((p) => {
-      const latest = p.reports[0];
+      const draft = p.reports[0] && p.reports[0].status === "DRAFT" ? p.reports[0] : null;
       return {
         id: p.id,
-        name: p.name,
         uhid: p.uhid,
+        name: p.name,
         age: p.age,
         gender: p.gender,
-        targetModality: p.targetModality,
-        report: latest
+        draft: draft
           ? {
-              id: latest.id,
-              templateId: latest.templateId,
-              findings: latest.findings,
-              impression: latest.impression,
-              status: latest.status,
+              id: draft.id,
+              status: draft.status,
+              findings: draft.findings,
+              impression: draft.impression,
+              templateId: draft.templateId ?? null,
             }
           : null,
       };
     });
 
-  const templates: EditorTemplate[] = data.templates.map((t) => ({
+  const templates: WorklistTemplate[] = data.templates.map((t) => ({
     id: t.id,
     title: t.title,
     modality: t.modality,
@@ -62,22 +86,22 @@ export default async function RadiologistPage() {
   }));
 
   return (
-    <PageShell>
-      <ReportEditor patients={queue} templates={templates} />
-    </PageShell>
+    <div className="space-y-6">
+      <Header />
+      <RadiologistWorkspace worklist={worklist} templates={templates} />
+    </div>
   );
 }
 
-function PageShell({ children }: { children: React.ReactNode }) {
+function Header() {
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-slate-900">Radiologist — Reporting</h1>
-        <p className="mt-1 text-slate-600">
-          Select a patient, load a scan template, edit the findings &amp; impression, then submit for review.
-        </p>
-      </header>
-      {children}
-    </div>
+    <header>
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        Reporting Worklist
+      </h1>
+      <p className="mt-1 text-sm text-slate-500">
+        Transcribe and approve radiology reports for patients awaiting results.
+      </p>
+    </header>
   );
 }

@@ -1,5 +1,5 @@
 // Helia Diagnostics — Prisma schema
-// PostgreSQL-backed text reporting platform.
+// PostgreSQL-backed text reporting platform with role-based access control.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,8 +12,8 @@ datasource db {
 
 enum Role {
   ADMIN
+  RECEPTIONIST
   RADIOLOGIST
-  RECEPTION
 }
 
 enum Modality {
@@ -25,14 +25,14 @@ enum Modality {
 
 enum ReportStatus {
   DRAFT
-  PENDING_REVIEW
   APPROVED
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid()) @db.Uuid
   name      String
   email     String   @unique
+  password  String
   role      Role
   createdAt DateTime @default(now())
 
@@ -43,27 +43,22 @@ model User {
 }
 
 model Patient {
-  id        String   @id @default(cuid())
-  uhid      String   @unique // Unique Hospital ID
+  id        String   @id @default(uuid()) @db.Uuid
+  uhid      String   @unique // Structured hospital id, e.g. HELIA-1001
   name      String
   age       Int
   gender    String
   createdAt DateTime @default(now())
 
-  // Reception assigns the scan type the patient is here for. The radiologist
-  // uses this to filter the relevant report templates. (Pragmatic extension
-  // of the core spec so the intake form's "target modality" has a home.)
-  targetModality Modality?
-
   reports Report[]
 }
 
 model Template {
-  id                String   @id @default(cuid())
-  title             String
+  id                String   @id @default(uuid()) @db.Uuid
+  title             String   @unique
   modality          Modality
-  defaultFindings   String
-  defaultImpression String
+  defaultFindings   String   @db.Text
+  defaultImpression String   @db.Text
   createdAt         DateTime @default(now())
 
   reports Report[]
@@ -72,24 +67,24 @@ model Template {
 }
 
 model Report {
-  id         String       @id @default(cuid())
+  id         String       @id @default(uuid()) @db.Uuid
   status     ReportStatus @default(DRAFT)
-  findings   String
-  impression String
+  findings   String       @db.Text
+  impression String       @db.Text
 
-  // Denormalized "YYYY-MM" bucket for fast month-wise archive grouping.
+  // Denormalized "YYYY-MM" bucket for fast month-wise grouping.
   createdMonthYear String
 
   createdAt  DateTime  @default(now())
   approvedAt DateTime?
 
-  patientId String
+  patientId String  @db.Uuid
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
-  templateId String?
+  templateId String?   @db.Uuid
   template   Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
-  radiologistId String?
+  radiologistId String? @db.Uuid
   radiologist   User?   @relation("RadiologistReports", fields: [radiologistId], references: [id], onDelete: SetNull)
 
   @@index([status])

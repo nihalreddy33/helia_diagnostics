@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/types";
 
 const ROLE_COOKIE = "helia_role";
-const DEFAULT_ROLE: Role = "RECEPTION";
+const DEFAULT_ROLE: Role = "RECEPTIONIST";
 
 function isRole(value: string | undefined): value is Role {
   return !!value && (ROLES as readonly string[]).includes(value);
@@ -13,7 +13,8 @@ function isRole(value: string | undefined): value is Role {
 /**
  * Mock auth: the "logged in" role is stored in a cookie so it survives
  * navigation and server-action revalidation. In production this would be a
- * real session derived from an auth provider.
+ * real session derived from credentials (the User.password column exists for
+ * exactly that future).
  */
 export async function getActiveRole(): Promise<Role> {
   const store = await cookies();

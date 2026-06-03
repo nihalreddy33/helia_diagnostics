@@ -4,7 +4,7 @@ import { AppHeader } from "@/components/AppHeader";
 
 export const metadata: Metadata = {
   title: "Helia Diagnostics — Reporting Platform",
-  description: "Text-based medical reporting for Helia Diagnostics.",
+  description: "Role-based text reporting platform for Helia Diagnostics.",
 };
 
 export default function RootLayout({

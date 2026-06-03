@@ -1,26 +1,16 @@
 import Link from "next/link";
 import { getActiveRole } from "@/lib/session";
 import { ROLE_LABELS } from "@/lib/types";
-import type { Role } from "@/lib/types";
+import { NAV_BY_ROLE } from "@/lib/nav";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { NavLink } from "@/components/NavLink";
-
-// Which nav destinations each role sees. Admin sees everything.
-const NAV_BY_ROLE: Record<Role, { href: string; label: string }[]> = {
-  RECEPTION: [{ href: "/reception", label: "Reception" }],
-  RADIOLOGIST: [{ href: "/radiologist", label: "Reporting" }],
-  ADMIN: [
-    { href: "/admin", label: "Review Queue" },
-    { href: "/archive", label: "Archive" },
-  ],
-};
 
 export async function AppHeader() {
   const activeRole = await getActiveRole();
   const links = NAV_BY_ROLE[activeRole];
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="no-print border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">

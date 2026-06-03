@@ -24,4 +24,44 @@
   .field-textarea {
     @apply field-input min-h-[8rem] font-mono leading-relaxed resize-y;
   }
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Print layout (Receptionist "Print Hub").
+   The .print-sheet renders as an A4 page; everything marked .no-print is
+   hidden, and the chrome (header/nav) collapses so window.print() yields a
+   clean, border-free report on standard A4 with letterhead spacing.
+--------------------------------------------------------------------------- */
+.print-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 1rem auto;
+  padding: 22mm 20mm;
+  background: #ffffff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  color: #0f172a;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-sheet {
+    width: auto;
+    min-height: auto;
+    margin: 0;
+    padding: 18mm 18mm;
+    box-shadow: none;
+  }
 }

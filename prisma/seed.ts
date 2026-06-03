@@ -1,34 +1,30 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+// Demo password for every seeded account (mock-auth login is by role switcher;
+// this exists so the password column is realistically populated).
+const DEMO_PASSWORD = "helia123";
 
 async function main() {
   console.log("Seeding Helia Diagnostics…");
 
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
   // --- Users (one per role) ------------------------------------------------
-  await prisma.user.upsert({
-    where: { email: "admin@helia.example" },
-    update: {},
-    create: { name: "Dr. Anita Rao", email: "admin@helia.example", role: "ADMIN" },
-  });
-  await prisma.user.upsert({
-    where: { email: "radiologist@helia.example" },
-    update: {},
-    create: {
-      name: "Dr. Vikram Shah",
-      email: "radiologist@helia.example",
-      role: "RADIOLOGIST",
-    },
-  });
-  await prisma.user.upsert({
-    where: { email: "reception@helia.example" },
-    update: {},
-    create: {
-      name: "Priya Menon",
-      email: "reception@helia.example",
-      role: "RECEPTION",
-    },
-  });
+  const users: { name: string; email: string; role: "ADMIN" | "RECEPTIONIST" | "RADIOLOGIST" }[] = [
+    { name: "Dr. Anita Rao", email: "admin@helia.example", role: "ADMIN" },
+    { name: "Priya Menon", email: "reception@helia.example", role: "RECEPTIONIST" },
+    { name: "Dr. Vikram Shah", email: "radiologist@helia.example", role: "RADIOLOGIST" },
+  ];
+  for (const u of users) {
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: { name: u.name, role: u.role },
+      create: { ...u, password: passwordHash },
+    });
+  }
 
   // --- Templates -----------------------------------------------------------
   const templates = [
@@ -61,58 +57,46 @@ async function main() {
       defaultImpression: "Normal ultrasound study of the abdomen and pelvis.",
     },
   ];
-
   for (const t of templates) {
-    const existing = await prisma.template.findFirst({ where: { title: t.title } });
-    if (!existing) await prisma.template.create({ data: t });
+    await prisma.template.upsert({
+      where: { title: t.title },
+      update: {},
+      create: t,
+    });
   }
 
-  // --- A couple of patients so the queues aren't empty ---------------------
+  // --- Patients ------------------------------------------------------------
   const p1 = await prisma.patient.upsert({
-    where: { uhid: "HD-100001" },
+    where: { uhid: "HELIA-1001" },
     update: {},
-    create: {
-      uhid: "HD-100001",
-      name: "Rahul Verma",
-      age: 45,
-      gender: "Male",
-      targetModality: "XRAY",
-    },
+    create: { uhid: "HELIA-1001", name: "Rahul Verma", age: 45, gender: "Male" },
   });
   await prisma.patient.upsert({
-    where: { uhid: "HD-100002" },
+    where: { uhid: "HELIA-1002" },
     update: {},
-    create: {
-      uhid: "HD-100002",
-      name: "Sara Iqbal",
-      age: 33,
-      gender: "Female",
-      targetModality: "USG",
-    },
+    create: { uhid: "HELIA-1002", name: "Sara Iqbal", age: 33, gender: "Female" },
   });
 
-  // --- One approved report for the archive view ----------------------------
+  // --- One approved report for the print hub / archive ---------------------
   const radiologist = await prisma.user.findFirst({ where: { role: "RADIOLOGIST" } });
-  const xrayTemplate = await prisma.template.findFirst({ where: { modality: "XRAY" } });
-  const existingReport = await prisma.report.findFirst({
-    where: { patientId: p1.id },
-  });
-  if (!existingReport && radiologist && xrayTemplate) {
+  const xray = await prisma.template.findFirst({ where: { modality: "XRAY" } });
+  const existing = await prisma.report.findFirst({ where: { patientId: p1.id } });
+  if (!existing && radiologist && xray) {
     await prisma.report.create({
       data: {
         patientId: p1.id,
-        templateId: xrayTemplate.id,
+        templateId: xray.id,
         radiologistId: radiologist.id,
         status: "APPROVED",
-        findings: xrayTemplate.defaultFindings,
-        impression: xrayTemplate.defaultImpression,
+        findings: xray.defaultFindings,
+        impression: xray.defaultImpression,
         createdMonthYear: "2026-06",
         approvedAt: new Date("2026-06-01T10:00:00Z"),
       },
     });
   }
 
-  console.log("Seed complete ✔");
+  console.log(`Seed complete ✔  (demo password for all accounts: "${DEMO_PASSWORD}")`);
 }
 
 main()

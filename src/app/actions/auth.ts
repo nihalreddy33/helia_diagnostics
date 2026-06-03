@@ -5,7 +5,7 @@ import { setActiveRole } from "@/lib/session";
 import { ROLES } from "@/lib/types";
 import type { Role } from "@/lib/types";
 
-/** Mock-auth role switch used by the dev role toggle. */
+/** Mock-auth role switch used by the dev role toggle in the header. */
 export async function switchRole(formData: FormData): Promise<void> {
   const role = String(formData.get("role") ?? "");
   if ((ROLES as readonly string[]).includes(role)) {

@@ -2,20 +2,16 @@ import type { Role, Modality, ReportStatus } from "@prisma/client";
 
 export type { Role, Modality, ReportStatus };
 
-export const ROLES: readonly Role[] = ["ADMIN", "RADIOLOGIST", "RECEPTION"];
+export const ROLES: readonly Role[] = ["ADMIN", "RECEPTIONIST", "RADIOLOGIST"];
 
 export const MODALITIES: readonly Modality[] = ["XRAY", "CT", "MRI", "USG"];
 
-export const REPORT_STATUSES: readonly ReportStatus[] = [
-  "DRAFT",
-  "PENDING_REVIEW",
-  "APPROVED",
-];
+export const REPORT_STATUSES: readonly ReportStatus[] = ["DRAFT", "APPROVED"];
 
 export const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: "Admin / Reviewer",
+  ADMIN: "Admin",
+  RECEPTIONIST: "Receptionist",
   RADIOLOGIST: "Radiologist",
-  RECEPTION: "Reception / Staff",
 };
 
 export const MODALITY_LABELS: Record<Modality, string> = {
@@ -27,17 +23,15 @@ export const MODALITY_LABELS: Record<Modality, string> = {
 
 export const STATUS_LABELS: Record<ReportStatus, string> = {
   DRAFT: "Draft",
-  PENDING_REVIEW: "Pending Review",
   APPROVED: "Approved",
 };
 
 export const STATUS_STYLES: Record<ReportStatus, string> = {
-  DRAFT: "bg-slate-100 text-slate-700 ring-slate-200",
-  PENDING_REVIEW: "bg-amber-100 text-amber-800 ring-amber-200",
+  DRAFT: "bg-amber-100 text-amber-800 ring-amber-200",
   APPROVED: "bg-emerald-100 text-emerald-800 ring-emerald-200",
 };
 
-/** Standard shape returned by every server action. */
+/** Standard discriminated result returned by every server action. */
 export type ActionResult<T = void> =
   | { ok: true; data: T }
   | { ok: false; error: string };

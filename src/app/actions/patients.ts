@@ -1,70 +1,49 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { MODALITIES } from "@/lib/types";
-import type { ActionResult, Modality } from "@/lib/types";
+import { withRole } from "@/lib/auth";
+import { describePrismaError } from "@/lib/prisma-errors";
+import { nextUhid } from "@/lib/uhid";
+import type { ActionResult } from "@/lib/types";
 
-function generateUhid(): string {
-  // HD-<6 digits>. Time-based suffix keeps it readable and unique enough for a
-  // mock; a real system would use a sequence/counter.
-  const suffix = String(Date.now()).slice(-6);
-  return `HD-${suffix}`;
-}
+const GENDERS = ["Male", "Female", "Other"];
 
-export type CreatePatientInput = {
-  name: string;
-  age: number;
-  gender: string;
-  targetModality: Modality;
-};
-
-/** Reception intake: register a new patient and assign a target modality. */
+/** RECEPTIONIST only — register a patient with an auto-generated UHID. */
 export async function createPatient(
   formData: FormData,
 ): Promise<ActionResult<{ id: string; uhid: string }>> {
   const name = String(formData.get("name") ?? "").trim();
   const ageRaw = String(formData.get("age") ?? "").trim();
   const gender = String(formData.get("gender") ?? "").trim();
-  const targetModality = String(formData.get("targetModality") ?? "").trim();
 
-  // --- Validation ----------------------------------------------------------
   if (!name) return { ok: false, error: "Patient name is required." };
-
   const age = Number(ageRaw);
   if (!Number.isInteger(age) || age < 0 || age > 150) {
     return { ok: false, error: "Enter a valid age between 0 and 150." };
   }
-  if (!gender) return { ok: false, error: "Please select a gender." };
-
-  if (!(MODALITIES as readonly string[]).includes(targetModality)) {
-    return { ok: false, error: "Please select a valid target modality." };
+  if (!GENDERS.includes(gender)) {
+    return { ok: false, error: "Please select a gender." };
   }
 
   try {
-    const patient = await prisma.patient.create({
-      data: {
-        uhid: generateUhid(),
-        name,
-        age,
-        gender,
-        targetModality: targetModality as Modality,
-      },
-      select: { id: true, uhid: true },
+    const result = await withRole("RECEPTIONIST", async () => {
+      // Generate the UHID and insert the patient atomically so concurrent
+      // intakes can't claim the same sequence number.
+      return prisma.$transaction(async (tx) => {
+        const uhid = await nextUhid(tx);
+        return tx.patient.create({
+          data: { uhid, name, age, gender },
+          select: { id: true, uhid: true },
+        });
+      });
     });
-
-    revalidatePath("/reception");
-    revalidatePath("/radiologist");
-    return { ok: true, data: patient };
-  } catch (err) {
-    if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === "P2002"
-    ) {
-      return { ok: false, error: "A patient with this UHID already exists." };
+    if (result.ok) {
+      revalidatePath("/receptionist");
+      revalidatePath("/radiologist");
     }
-    console.error("createPatient failed", err);
-    return { ok: false, error: "Could not register patient. Please try again." };
+    return result;
+  } catch (err) {
+    return { ok: false, error: describePrismaError(err, "Could not register patient.") };
   }
 }

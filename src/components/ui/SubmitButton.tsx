@@ -3,22 +3,17 @@
 import { useFormStatus } from "react-dom";
 import type { ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "success";
+type Variant = "primary" | "secondary" | "success" | "danger";
 
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    "bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-300",
+  primary: "bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-300",
   secondary:
     "bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus-visible:ring-brand-300",
-  success:
-    "bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-300",
+  success: "bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-300",
+  danger: "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-300",
 };
 
-/**
- * Submit button wired to the enclosing <form>'s pending state so it disables
- * and shows progress during a server action. Pass `name`/`value` to set which
- * intent triggered the submit.
- */
+/** Submit button wired to the enclosing <form>'s pending state. */
 export function SubmitButton({
   children,
   variant = "primary",
