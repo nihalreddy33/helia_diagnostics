@@ -4,6 +4,7 @@ import { logout } from "@/app/actions/auth";
 import { ROLE_LABELS } from "@/lib/types";
 import { NAV_BY_ROLE, HOME_BY_ROLE } from "@/lib/nav";
 import { NavLink } from "@/components/NavLink";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export async function AppHeader() {
   const user = await getCurrentUser();
@@ -16,14 +17,8 @@ export async function AppHeader() {
   return (
     <header className="no-print border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
-        <Link href={HOME_BY_ROLE[user.role]} className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-            H
-          </span>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold text-slate-900">Helia Diagnostics</div>
-            <div className="text-xs text-slate-500">Reporting Platform</div>
-          </div>
+        <Link href={HOME_BY_ROLE[user.role]} className="flex items-center" aria-label="Helia Diagnostics home">
+          <BrandLogo variant="header" />
         </Link>
 
         <nav className="flex items-center gap-1" aria-label="Primary">
