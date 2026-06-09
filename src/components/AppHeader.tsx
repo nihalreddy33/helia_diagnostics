@@ -1,18 +1,22 @@
 import Link from "next/link";
-import { getActiveRole } from "@/lib/session";
+import { getCurrentUser } from "@/lib/session";
+import { logout } from "@/app/actions/auth";
 import { ROLE_LABELS } from "@/lib/types";
-import { NAV_BY_ROLE } from "@/lib/nav";
-import { RoleSwitcher } from "@/components/RoleSwitcher";
+import { NAV_BY_ROLE, HOME_BY_ROLE } from "@/lib/nav";
 import { NavLink } from "@/components/NavLink";
 
 export async function AppHeader() {
-  const activeRole = await getActiveRole();
-  const links = NAV_BY_ROLE[activeRole];
+  const user = await getCurrentUser();
+
+  // Logged out (e.g. the /login route): render no app chrome.
+  if (!user) return null;
+
+  const links = NAV_BY_ROLE[user.role];
 
   return (
     <header className="no-print border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={HOME_BY_ROLE[user.role]} className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
             H
           </span>
@@ -31,10 +35,18 @@ export async function AppHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <span className="hidden text-xs text-slate-500 sm:inline">
-            Acting as <span className="font-medium text-slate-700">{ROLE_LABELS[activeRole]}</span>
-          </span>
-          <RoleSwitcher activeRole={activeRole} />
+          <div className="hidden text-right leading-tight sm:block">
+            <div className="text-sm font-medium text-slate-700">{user.name}</div>
+            <div className="text-xs text-slate-400">{ROLE_LABELS[user.role]}</div>
+          </div>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 ring-1 ring-inset ring-slate-200 transition hover:bg-slate-50 hover:text-slate-800"
+            >
+              Sign out
+            </button>
+          </form>
         </div>
       </div>
     </header>

@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
-import { getActiveRole } from "@/lib/session";
+import { requireUser } from "@/lib/guards";
 import { HOME_BY_ROLE } from "@/lib/nav";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
-  const role = await getActiveRole();
-  redirect(HOME_BY_ROLE[role]);
+  const user = await requireUser();
+  redirect(HOME_BY_ROLE[user.role]);
 }

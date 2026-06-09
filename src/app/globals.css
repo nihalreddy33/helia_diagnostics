@@ -57,6 +57,12 @@
   .no-print {
     display: none !important;
   }
+  /* Collapse the app's page wrapper so the sheet sits flush on the A4 page. */
+  main {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
   .print-sheet {
     width: auto;
     min-height: auto;
