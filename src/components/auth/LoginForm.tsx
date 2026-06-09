@@ -23,16 +23,16 @@ export function LoginForm() {
 
       <div>
         <label htmlFor="email" className="field-label">
-          Email
+          Username
         </label>
         <input
           id="email"
           name="email"
-          type="email"
+          type="text"
           autoComplete="username"
           required
           className="field-input"
-          placeholder="you@helia.example"
+          placeholder="admin"
         />
       </div>
 

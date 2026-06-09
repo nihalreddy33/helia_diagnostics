@@ -12,6 +12,19 @@ async function main() {
 
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
+  // --- Default admin account (username "admin" / password "admin123") -------
+  // A simple, memorable default for first sign-in. Change it after logging in.
+  await prisma.user.upsert({
+    where: { email: "admin" },
+    update: {},
+    create: {
+      name: "Administrator",
+      email: "admin",
+      password: await bcrypt.hash("admin123", 10),
+      role: "ADMIN",
+    },
+  });
+
   // --- Users (one per role) ------------------------------------------------
   const users: { name: string; email: string; role: "ADMIN" | "RECEPTIONIST" | "RADIOLOGIST" }[] = [
     { name: "Dr. Anita Rao", email: "admin@helia.example", role: "ADMIN" },
