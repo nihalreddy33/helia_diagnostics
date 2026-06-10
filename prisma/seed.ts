@@ -63,17 +63,78 @@ async function main() {
       defaultImpression: "No significant degenerative or compressive abnormality.",
     },
     {
-      title: "USG Abdomen & Pelvis",
+      title: "USG Abdomen — Male",
       modality: "USG" as const,
-      defaultFindings:
-        "Liver is normal in size and echotexture with no focal lesion. Gallbladder is unremarkable without calculi. Both kidneys show normal corticomedullary differentiation. No free fluid.",
-      defaultImpression: "Normal ultrasound study of the abdomen and pelvis.",
+      defaultFindings: `LIVER: Normal in size ( cm), shape and echopattern. No intrahepatic biliary dilatation. No focal lesions. CBD and portal vein appear normal.
+GALLBLADDER: Normal in contours. Wall thickness appears normal. No calculi.
+SPLEEN: Normal in size ( cm), shape and echopattern. No focal lesions noted.
+PANCREAS: Normal in size, shape and echopattern. No ductal dilatation. No calcifications / calculi. Peripancreatic fat planes appear normal.
+RIGHT KIDNEY:  mm. Normal in size, shape and echopattern. Pelvicalyceal system appears normal. No focal lesions / calculi noted. Corticomedullary differentiation is well maintained.
+LEFT KIDNEY:  mm. Normal in size, shape and echopattern. Pelvicalyceal system appears normal. No focal lesions / calculi noted. Corticomedullary differentiation is well maintained.
+URINARY BLADDER: Normally distended. Wall thickness appears normal. No calculi.
+PROSTATE:  cc. Normal in size and echotexture.
+No evidence of free fluid in the peritoneal cavity.
+No pre/para-aortic or retrocaval lymphadenopathy.`,
+      defaultImpression: `* No significant abnormality detected.
+Suggested clinical correlation and follow-up.`,
+    },
+    {
+      title: "USG Abdomen & Pelvis — Female",
+      modality: "USG" as const,
+      defaultFindings: `LIVER: Normal in size ( cm), shape and echopattern. No intrahepatic biliary dilatation. No focal lesions. CBD and portal vein appear normal.
+GALLBLADDER: Normal in contours. Wall thickness appears normal. No calculi.
+SPLEEN: Normal in size ( cm), shape and echopattern. No focal lesions noted.
+PANCREAS: Normal in size and echopattern. No ductal dilatation. No calcifications.
+RIGHT KIDNEY:  mm. Normal in size, shape and echopattern. Pelvicalyceal system appears normal. No focal lesions / calculi noted. Corticomedullary differentiation is well maintained.
+LEFT KIDNEY:  mm. Normal in size, shape and echopattern. Pelvicalyceal system appears normal. No focal lesions / calculi noted. Corticomedullary differentiation is well maintained.
+URINARY BLADDER: Normal in contours. Wall thickness appears normal. No calculi.
+UTERUS:  mm. Anteverted. Normal in size, shape and echotexture. No focal lesions noted.
+ENDOMETRIAL THICKNESS:  mm.
+BOTH OVARIES: Normal in size and echotexture. No focal lesions. No pathological cyst noted.
+RIGHT OVARY:  mm.
+LEFT OVARY:  mm.
+No ascites noted.
+Retroperitoneum obscured by excessive bowel gas.
+No dilated bowel loops. Gas-distended bowel loops.`,
+      defaultImpression: `* No significant abnormality detected.
+Suggested clinical correlation and follow-up.`,
+    },
+    {
+      title: "Obstetric / Growth Scan",
+      modality: "USG" as const,
+      defaultFindings: `Detailed anatomical survey not done in the present scan due to fetal position and advanced gestational age.
+
+A single live fetus in cephalic presentation.
+The placenta is posterior mid-segment, Grade-II maturity.
+LIQUOR VOLUME: adequate (AFI:  cc).
+CERVICAL LENGTH:  cms. Internal OS closed; no funnelling.
+
+BIOMETRY:
+BPD:  cm corresponding to  weeks  days.
+HC:  cm corresponding to  weeks  days.
+AC:  cm corresponding to  weeks  days.
+FL:  cm corresponding to  weeks  days.
+FHR:  bpm.
+EFBW:  gms (+/-  gms).
+
+LMP:
+EGA (USG):  weeks and  days; EDD (USG):
+EGA (LMP):  weeks and  days; EDD (LMP):`,
+      defaultImpression: `* Single live intrauterine foetus in cephalic presentation of  weeks  days.`,
+      defaultFooter: `Note: All anomalies cannot be ruled out by ultrasound, since assessment of fetal anomalies depends on fetal position, liquor volume and period of gestation at the time of scan. Ultrasound alone cannot exclude all genetic syndromes or chromosomal abnormalities; hence this report has limitations.
+
+Declaration of the doctor conducting ultrasonography: I, {{radiologist}}, declare that while conducting ultrasonography on the patient I have neither detected nor disclosed the sex of her fetus to anybody in any manner. This report is not valid for medico-legal process.`,
     },
   ];
   for (const t of templates) {
     await prisma.template.upsert({
       where: { title: t.title },
-      update: {},
+      update: {
+        modality: t.modality,
+        defaultFindings: t.defaultFindings,
+        defaultImpression: t.defaultImpression,
+        defaultFooter: "defaultFooter" in t ? t.defaultFooter : "",
+      },
       create: t,
     });
   }

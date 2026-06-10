@@ -14,6 +14,7 @@ export type EditableTemplate = {
   modality: Modality;
   defaultFindings: string;
   defaultImpression: string;
+  defaultFooter: string;
 };
 
 /**
@@ -104,6 +105,21 @@ export function TemplateForm({ template }: { template?: EditableTemplate }) {
           defaultValue={template?.defaultImpression ?? ""}
           className="field-textarea"
           placeholder="Describe the standard impression to pre-fill on new reports…"
+        />
+      </div>
+
+      <div>
+        <label className="field-label" htmlFor={`footer-${uid}`}>
+          Default declaration / footer{" "}
+          <span className="font-normal text-slate-400">(optional)</span>
+        </label>
+        <textarea
+          id={`footer-${uid}`}
+          name="defaultFooter"
+          rows={3}
+          defaultValue={template?.defaultFooter ?? ""}
+          className="field-textarea"
+          placeholder="e.g. PCPNDT declaration. Use {{radiologist}} for the reporting doctor's name…"
         />
       </div>
 

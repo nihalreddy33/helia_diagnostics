@@ -59,6 +59,9 @@ model Template {
   modality          Modality
   defaultFindings   String   @db.Text
   defaultImpression String   @db.Text
+  // Optional declaration / note block (e.g. PCPNDT declaration on obstetric
+  // scans). May contain a {{radiologist}} token, substituted at print time.
+  defaultFooter     String   @db.Text @default("")
   createdAt         DateTime @default(now())
 
   reports Report[]
@@ -71,6 +74,8 @@ model Report {
   status     ReportStatus @default(DRAFT)
   findings   String       @db.Text
   impression String       @db.Text
+  // Snapshot of the declaration / footer for this report (may be empty).
+  footer     String       @db.Text @default("")
 
   // Denormalized "YYYY-MM" bucket for fast month-wise grouping.
   createdMonthYear String

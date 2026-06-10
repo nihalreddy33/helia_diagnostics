@@ -23,6 +23,7 @@ export default async function RadiologistPage() {
               status: true,
               findings: true,
               impression: true,
+              footer: true,
               templateId: true,
             },
           },
@@ -36,6 +37,7 @@ export default async function RadiologistPage() {
           modality: true,
           defaultFindings: true,
           defaultImpression: true,
+          defaultFooter: true,
         },
       }),
     ]);
@@ -71,6 +73,7 @@ export default async function RadiologistPage() {
               status: draft.status,
               findings: draft.findings,
               impression: draft.impression,
+              footer: draft.footer,
               templateId: draft.templateId ?? null,
             }
           : null,
@@ -83,6 +86,7 @@ export default async function RadiologistPage() {
     modality: t.modality,
     defaultFindings: t.defaultFindings,
     defaultImpression: t.defaultImpression,
+    defaultFooter: t.defaultFooter,
   }));
 
   return (

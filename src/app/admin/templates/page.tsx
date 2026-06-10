@@ -25,6 +25,7 @@ export default async function TemplatesPage() {
         modality: true,
         defaultFindings: true,
         defaultImpression: true,
+        defaultFooter: true,
         createdAt: true,
       },
     }),
@@ -118,6 +119,7 @@ export default async function TemplatesPage() {
                               modality: template.modality,
                               defaultFindings: template.defaultFindings,
                               defaultImpression: template.defaultImpression,
+                              defaultFooter: template.defaultFooter,
                             }}
                           />
                         </div>

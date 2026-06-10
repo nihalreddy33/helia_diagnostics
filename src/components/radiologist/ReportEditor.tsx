@@ -29,6 +29,7 @@ export function ReportEditor({
   const [templateId, setTemplateId] = useState<string>(draft?.templateId ?? "");
   const [findings, setFindings] = useState<string>(draft?.findings ?? "");
   const [impression, setImpression] = useState<string>(draft?.impression ?? "");
+  const [footer, setFooter] = useState<string>(draft?.footer ?? "");
 
   const [state, formAction] = useActionState<State, FormData>(saveAction, null);
 
@@ -40,6 +41,7 @@ export function ReportEditor({
     if (tpl) {
       setFindings(tpl.defaultFindings);
       setImpression(tpl.defaultImpression);
+      setFooter(tpl.defaultFooter);
     }
   }
 
@@ -129,6 +131,25 @@ export function ReportEditor({
             className="field-textarea"
             placeholder="Summarise the diagnostic impression…"
           />
+        </div>
+
+        <div>
+          <label htmlFor="footer" className="field-label">
+            Declaration / footer <span className="font-normal text-slate-400">(optional)</span>
+          </label>
+          <textarea
+            id="footer"
+            name="footer"
+            value={footer}
+            onChange={(e) => setFooter(e.target.value)}
+            rows={4}
+            className="field-textarea"
+            placeholder="Notes or declaration printed below the impression…"
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            <code className="rounded bg-slate-100 px-1">{"{{radiologist}}"}</code> is replaced with
+            your name on the printed report.
+          </p>
         </div>
 
         {state && !state.ok && (

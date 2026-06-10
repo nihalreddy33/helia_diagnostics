@@ -6,6 +6,7 @@ export type WorklistDraft = {
   status: ReportStatus;
   findings: string;
   impression: string;
+  footer: string;
   templateId: string | null;
 };
 
@@ -26,4 +27,5 @@ export type WorklistTemplate = {
   modality: Modality;
   defaultFindings: string;
   defaultImpression: string;
+  defaultFooter: string;
 };

@@ -14,6 +14,7 @@ function parse(formData: FormData) {
     modality: String(formData.get("modality") ?? ""),
     defaultFindings: String(formData.get("defaultFindings") ?? "").trim(),
     defaultImpression: String(formData.get("defaultImpression") ?? "").trim(),
+    defaultFooter: String(formData.get("defaultFooter") ?? "").trim(),
   };
 }
 
@@ -21,7 +22,8 @@ function parse(formData: FormData) {
 export async function saveTemplate(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
-  const { id, title, modality, defaultFindings, defaultImpression } = parse(formData);
+  const { id, title, modality, defaultFindings, defaultImpression, defaultFooter } =
+    parse(formData);
 
   if (!title) return { ok: false, error: "Title is required." };
   if (!(MODALITIES as readonly string[]).includes(modality)) {
@@ -37,6 +39,7 @@ export async function saveTemplate(
         modality: modality as Modality,
         defaultFindings,
         defaultImpression,
+        defaultFooter,
       };
       return id
         ? prisma.template.update({ where: { id }, data, select: { id: true } })

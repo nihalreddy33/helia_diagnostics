@@ -16,6 +16,7 @@ function parse(formData: FormData) {
     templateId: String(formData.get("templateId") ?? "").trim() || null,
     findings: String(formData.get("findings") ?? "").trim(),
     impression: String(formData.get("impression") ?? "").trim(),
+    footer: String(formData.get("footer") ?? "").trim(),
     intent: (String(formData.get("intent") ?? "APPROVED") === "DRAFT"
       ? "DRAFT"
       : "APPROVED") as SaveIntent,
@@ -30,7 +31,8 @@ function parse(formData: FormData) {
 export async function saveReport(
   formData: FormData,
 ): Promise<ActionResult<{ id: string; status: ReportStatus }>> {
-  const { reportId, patientId, templateId, findings, impression, intent } = parse(formData);
+  const { reportId, patientId, templateId, findings, impression, footer, intent } =
+    parse(formData);
 
   if (!patientId) return { ok: false, error: "A patient must be selected." };
   if (intent === "APPROVED") {
@@ -55,7 +57,7 @@ export async function saveReport(
 
         return prisma.report.update({
           where: { id: reportId },
-          data: { templateId, findings, impression, radiologistId: user.id, ...approvedFields },
+          data: { templateId, findings, impression, footer, radiologistId: user.id, ...approvedFields },
           select: { id: true, status: true },
         });
       }
@@ -66,6 +68,7 @@ export async function saveReport(
           templateId,
           findings,
           impression,
+          footer,
           radiologistId: user.id,
           createdMonthYear: currentMonthYear(),
           ...approvedFields,

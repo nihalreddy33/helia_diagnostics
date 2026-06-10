@@ -56,6 +56,12 @@ export default async function PrintReportPage({
   const modalityLabel = report.template ? MODALITY_LABELS[report.template.modality] : "—";
   const radiologistName = report.radiologist?.name ?? "—";
 
+  // Substitute the {{radiologist}} token in the declaration with the actual
+  // reporting doctor (used by e.g. the obstetric PCPNDT declaration).
+  const footerText = report.footer
+    ? report.footer.replace(/\{\{\s*radiologist\s*\}\}/gi, report.radiologist?.name ?? "____________")
+    : "";
+
   return (
     <div>
       {/* Toolbar — hidden when printing */}
@@ -116,8 +122,17 @@ export default async function PrintReportPage({
           </p>
         </section>
 
+        {/* Declaration / footer (optional) */}
+        {footerText && (
+          <section className="mt-8">
+            <p className="whitespace-pre-wrap text-[11px] leading-5 text-slate-600">
+              {footerText}
+            </p>
+          </section>
+        )}
+
         {/* Signature */}
-        <section className="mt-20 flex justify-end">
+        <section className="mt-16 flex justify-end">
           <div className="text-center">
             <div className="h-px w-56 bg-slate-400" />
             <p className="mt-2 text-sm font-semibold text-slate-800">{radiologistName}</p>
