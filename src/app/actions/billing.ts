@@ -40,6 +40,7 @@ export async function createBill(
   formData: FormData,
 ): Promise<ActionResult<{ id: string; invoiceNo: string }>> {
   const patientId = String(formData.get("patientId") ?? "").trim();
+  const referringDoctor = String(formData.get("referringDoctor") ?? "").trim();
   const items = parseItems(String(formData.get("items") ?? "[]"));
   const discount = Math.max(0, rupeesToPaise(String(formData.get("discount") ?? "0")));
   const amountPaid = Math.max(0, rupeesToPaise(String(formData.get("amountPaid") ?? "0")));
@@ -48,6 +49,7 @@ export async function createBill(
     methodRaw === "CASH" || methodRaw === "CARD" || methodRaw === "UPI" ? methodRaw : null;
 
   if (!patientId) return { ok: false, error: "Select a patient first." };
+  if (!referringDoctor) return { ok: false, error: "Enter the referring doctor's name." };
   if (items.length === 0) return { ok: false, error: "Add at least one service to the bill." };
 
   try {
@@ -77,6 +79,7 @@ export async function createBill(
             invoiceNo: await nextInvoiceNo(tx),
             patientId,
             receptionistId: user.id,
+            referringDoctor,
             subtotal,
             discount,
             total,

@@ -155,6 +155,21 @@ export function BillingWorkbench({ services }: { services: ServiceOption[] }) {
       <form action={formAction} className="card h-fit space-y-4 p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Bill</h2>
 
+        <div>
+          <label htmlFor="referringDoctor" className="field-label">
+            Referring doctor
+          </label>
+          <input
+            id="referringDoctor"
+            name="referringDoctor"
+            type="text"
+            required
+            autoComplete="off"
+            placeholder="e.g. Dr. Mehta (or Self)"
+            className="field-input"
+          />
+        </div>
+
         {lines.length === 0 ? (
           <p className="text-sm text-slate-400">No services added yet.</p>
         ) : (
@@ -307,6 +322,7 @@ function PatientPicker({
             <p className="font-semibold text-slate-900">{patient.name}</p>
             <p className="text-xs text-slate-500">
               <span className="font-mono">{patient.uhid}</span> · {patient.age} yrs · {patient.gender}
+              {patient.mobile ? ` · ${patient.mobile}` : ""}
             </p>
           </div>
           <button
@@ -333,7 +349,7 @@ function PatientPicker({
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search by name or UHID…"
+        placeholder="Search by name, UHID, or mobile…"
         className="field-input"
         aria-label="Search patients"
       />
@@ -352,6 +368,7 @@ function PatientPicker({
               <span className="font-medium text-slate-800">{h.name}</span>
               <span className="text-xs text-slate-400">
                 <span className="font-mono">{h.uhid}</span> · {h.age}y · {h.gender}
+                {h.mobile ? ` · ${h.mobile}` : ""}
               </span>
             </button>
           </li>

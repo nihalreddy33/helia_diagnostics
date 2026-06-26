@@ -77,6 +77,7 @@ model Patient {
   name      String
   age       Int
   gender    String
+  mobile    String   @default("")
   createdAt DateTime @default(now())
 
   reports    Report[]
@@ -161,6 +162,9 @@ model Bill {
 
   receptionistId String? @db.Uuid
   receptionist   User?   @relation("BillsRaised", fields: [receptionistId], references: [id], onDelete: SetNull)
+
+  // Doctor who referred the patient for these tests.
+  referringDoctor String @default("")
 
   subtotal      Int            @default(0) // paise, before discount
   discount      Int            @default(0) // paise

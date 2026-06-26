@@ -11,7 +11,7 @@ export default async function ReceptionistPage() {
     prisma.patient.findMany({
       orderBy: { createdAt: "desc" },
       take: 8,
-      select: { id: true, name: true, age: true, gender: true, uhid: true },
+      select: { id: true, name: true, age: true, gender: true, uhid: true, mobile: true },
     }),
   );
 
@@ -53,6 +53,7 @@ export default async function ReceptionistPage() {
                     <p className="truncate text-sm font-semibold text-slate-800">{p.name}</p>
                     <p className="mt-0.5 text-xs text-slate-500">
                       {p.age} yrs · {p.gender}
+                      {p.mobile ? ` · ${p.mobile}` : ""}
                     </p>
                   </div>
                   <span className="shrink-0 rounded-md bg-brand-50 px-2 py-1 font-mono text-xs font-semibold text-brand-700">

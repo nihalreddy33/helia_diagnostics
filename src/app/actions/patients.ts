@@ -13,9 +13,19 @@ export type PatientHit = {
   name: string;
   age: number;
   gender: string;
+  mobile: string;
 };
 
-/** RECEPTIONIST only — look up existing patients by name or UHID. */
+const HIT_SELECT = {
+  id: true,
+  uhid: true,
+  name: true,
+  age: true,
+  gender: true,
+  mobile: true,
+} as const;
+
+/** RECEPTIONIST only — look up existing patients by name, UHID, or mobile. */
 export async function searchPatients(query: string): Promise<PatientHit[]> {
   const q = query.trim();
   const result = await withRole("RECEPTIONIST", async () => {
@@ -23,7 +33,7 @@ export async function searchPatients(query: string): Promise<PatientHit[]> {
       return prisma.patient.findMany({
         orderBy: { createdAt: "desc" },
         take: 8,
-        select: { id: true, uhid: true, name: true, age: true, gender: true },
+        select: HIT_SELECT,
       });
     }
     return prisma.patient.findMany({
@@ -31,11 +41,12 @@ export async function searchPatients(query: string): Promise<PatientHit[]> {
         OR: [
           { name: { contains: q, mode: "insensitive" } },
           { uhid: { contains: q, mode: "insensitive" } },
+          { mobile: { contains: q } },
         ],
       },
       orderBy: { createdAt: "desc" },
       take: 10,
-      select: { id: true, uhid: true, name: true, age: true, gender: true },
+      select: HIT_SELECT,
     });
   });
   return result.ok ? result.data : [];
@@ -50,6 +61,7 @@ export async function createPatient(
   const name = String(formData.get("name") ?? "").trim();
   const ageRaw = String(formData.get("age") ?? "").trim();
   const gender = String(formData.get("gender") ?? "").trim();
+  const mobile = String(formData.get("mobile") ?? "").trim();
 
   if (!name) return { ok: false, error: "Patient name is required." };
   const age = Number(ageRaw);
@@ -59,6 +71,10 @@ export async function createPatient(
   if (!GENDERS.includes(gender)) {
     return { ok: false, error: "Please select a gender." };
   }
+  // Mobile is required: at least 10 digits after stripping spaces/+/-.
+  if ((mobile.match(/\d/g) ?? []).length < 10) {
+    return { ok: false, error: "Enter a valid mobile number (at least 10 digits)." };
+  }
 
   try {
     const result = await withRole("RECEPTIONIST", async () => {
@@ -67,7 +83,7 @@ export async function createPatient(
       return prisma.$transaction(async (tx) => {
         const uhid = await nextUhid(tx);
         return tx.patient.create({
-          data: { uhid, name, age, gender },
+          data: { uhid, name, age, gender, mobile },
           select: { id: true, uhid: true },
         });
       });

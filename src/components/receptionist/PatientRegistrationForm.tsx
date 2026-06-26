@@ -57,6 +57,22 @@ export function PatientRegistrationForm() {
           />
         </div>
 
+        <div>
+          <label htmlFor="mobile" className="field-label">
+            Mobile number
+          </label>
+          <input
+            id="mobile"
+            name="mobile"
+            type="tel"
+            inputMode="tel"
+            required
+            autoComplete="off"
+            placeholder="e.g. 98765 43210"
+            className="field-input"
+          />
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="age" className="field-label">

@@ -77,6 +77,12 @@ export default async function InvoicePage({
               <span className="font-mono">{bill.patient.uhid}</span> · {bill.patient.age} yrs ·{" "}
               {bill.patient.gender}
             </p>
+            {bill.patient.mobile && (
+              <p className="text-xs text-slate-500">Mobile: {bill.patient.mobile}</p>
+            )}
+            {bill.referringDoctor && (
+              <p className="mt-1 text-xs text-slate-500">Ref. by: {bill.referringDoctor}</p>
+            )}
           </div>
           <div className="text-right">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Payment</p>
