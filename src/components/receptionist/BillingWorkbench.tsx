@@ -36,9 +36,20 @@ export function BillingWorkbench({ services }: { services: ServiceOption[] }) {
   const router = useRouter();
   const [patient, setPatient] = useState<PatientHit | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
+  const [serviceQuery, setServiceQuery] = useState("");
   const [discount, setDiscount] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
   const [method, setMethod] = useState("CASH");
+
+  // Filter the services catalogue by name or modality label.
+  const filteredServices = useMemo(() => {
+    const q = serviceQuery.trim().toLowerCase();
+    if (!q) return services;
+    return services.filter((s) => {
+      const modalityLabel = s.modality ? MODALITY_LABELS[s.modality].toLowerCase() : "non-scan";
+      return s.name.toLowerCase().includes(q) || modalityLabel.includes(q);
+    });
+  }, [services, serviceQuery]);
 
   const [state, formAction] = useActionState<State, FormData>(action, null);
 
@@ -87,17 +98,31 @@ export function BillingWorkbench({ services }: { services: ServiceOption[] }) {
 
         {/* Service catalogue */}
         <section className="card p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Add services
-          </h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Add services
+            </h2>
+            {services.length > 0 && (
+              <input
+                type="search"
+                value={serviceQuery}
+                onChange={(e) => setServiceQuery(e.target.value)}
+                placeholder="Search tests…"
+                aria-label="Search services"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 sm:w-56"
+              />
+            )}
+          </div>
           {services.length === 0 ? (
             <p className="text-sm text-slate-500">
               No active services. An admin can add them under{" "}
               <span className="font-medium">Services</span>.
             </p>
+          ) : filteredServices.length === 0 ? (
+            <p className="text-sm text-slate-400">No tests match “{serviceQuery}”.</p>
           ) : (
             <ul className="grid gap-2 sm:grid-cols-2">
-              {services.map((s) => (
+              {filteredServices.map((s) => (
                 <li key={s.id}>
                   <button
                     type="button"
