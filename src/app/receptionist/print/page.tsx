@@ -4,10 +4,20 @@ import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { EmptyState } from "@/components/EmptyState";
-import { StatusBadge } from "@/components/ui/Badge";
 import { MODALITY_LABELS, formatMonthYear } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+type PrintItem = {
+  id: string;
+  kind: "Radiology" | "Lab";
+  patientName: string;
+  uhid: string;
+  label: string;
+  approvedAt: Date | null;
+  monthYear: string;
+  href: string;
+};
 
 function formatDate(date: Date | null): string {
   if (!date) return "—";
@@ -28,30 +38,67 @@ export default async function PrintHubPage({
   const query = (q ?? "").trim();
   const selectedMonth = (month ?? "").trim();
 
-  const where: Prisma.ReportWhereInput = { status: "APPROVED" };
-  if (selectedMonth) where.createdMonthYear = selectedMonth;
-  if (query) {
-    where.OR = [
-      { patient: { name: { contains: query, mode: "insensitive" } } },
-      { patient: { uhid: { contains: query, mode: "insensitive" } } },
-      { impression: { contains: query, mode: "insensitive" } },
-    ];
-  }
-
   const data = await safeQuery(async () => {
-    const [reports, monthGroups] = await Promise.all([
-      prisma.report.findMany({
-        where,
-        include: { patient: true, template: true },
-        orderBy: [{ createdMonthYear: "desc" }, { approvedAt: "desc" }],
+    const radWhere: Prisma.ReportWhereInput = { status: "APPROVED" };
+    const labWhere: Prisma.LabReportWhereInput = { status: "APPROVED" };
+    if (selectedMonth) {
+      radWhere.createdMonthYear = selectedMonth;
+      labWhere.createdMonthYear = selectedMonth;
+    }
+    if (query) {
+      radWhere.OR = [
+        { patient: { name: { contains: query, mode: "insensitive" } } },
+        { patient: { uhid: { contains: query, mode: "insensitive" } } },
+        { impression: { contains: query, mode: "insensitive" } },
+      ];
+      labWhere.OR = [
+        { patient: { name: { contains: query, mode: "insensitive" } } },
+        { patient: { uhid: { contains: query, mode: "insensitive" } } },
+        { template: { title: { contains: query, mode: "insensitive" } } },
+      ];
+    }
+
+    const [reports, labReports, radMonths, labMonths] = await Promise.all([
+      prisma.report.findMany({ where: radWhere, include: { patient: true, template: true } }),
+      prisma.labReport.findMany({
+        where: labWhere,
+        include: { patient: true, template: true, billItem: { select: { description: true } } },
       }),
-      prisma.report.groupBy({
-        by: ["createdMonthYear"],
-        where: { status: "APPROVED" },
-        orderBy: { createdMonthYear: "desc" },
-      }),
+      prisma.report.groupBy({ by: ["createdMonthYear"], where: { status: "APPROVED" } }),
+      prisma.labReport.groupBy({ by: ["createdMonthYear"], where: { status: "APPROVED" } }),
     ]);
-    return { reports, months: monthGroups.map((g) => g.createdMonthYear) };
+
+    const months = [
+      ...new Set([
+        ...radMonths.map((g) => g.createdMonthYear),
+        ...labMonths.map((g) => g.createdMonthYear),
+      ]),
+    ].sort((a, b) => (a < b ? 1 : -1));
+
+    const items: PrintItem[] = [
+      ...reports.map<PrintItem>((r) => ({
+        id: r.id,
+        kind: "Radiology",
+        patientName: r.patient.name,
+        uhid: r.patient.uhid,
+        label: r.template ? MODALITY_LABELS[r.template.modality] : "Report",
+        approvedAt: r.approvedAt,
+        monthYear: r.createdMonthYear,
+        href: `/receptionist/print/${r.id}`,
+      })),
+      ...labReports.map<PrintItem>((r) => ({
+        id: r.id,
+        kind: "Lab",
+        patientName: r.patient.name,
+        uhid: r.patient.uhid,
+        label: r.template?.title ?? r.billItem?.description ?? "Lab report",
+        approvedAt: r.approvedAt,
+        monthYear: r.createdMonthYear,
+        href: `/receptionist/print/lab/${r.id}`,
+      })),
+    ].sort((a, b) => (b.approvedAt?.getTime() ?? 0) - (a.approvedAt?.getTime() ?? 0));
+
+    return { items, months };
   });
 
   if (data === null) {
@@ -63,14 +110,14 @@ export default async function PrintHubPage({
     );
   }
 
-  // Group the filtered reports by their month bucket.
-  const grouped = new Map<string, typeof data.reports>();
-  for (const r of data.reports) {
-    const list = grouped.get(r.createdMonthYear) ?? [];
-    list.push(r);
-    grouped.set(r.createdMonthYear, list);
+  // Group by month bucket (items already sorted newest-first).
+  const grouped = new Map<string, PrintItem[]>();
+  for (const it of data.items) {
+    const list = grouped.get(it.monthYear) ?? [];
+    list.push(it);
+    grouped.set(it.monthYear, list);
   }
-  const groups = [...grouped.entries()];
+  const groups = [...grouped.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
@@ -86,7 +133,7 @@ export default async function PrintHubPage({
             type="search"
             name="q"
             defaultValue={query}
-            placeholder="Patient name, UHID, or impression…"
+            placeholder="Patient name, UHID, test or impression…"
             className="field-input"
           />
         </div>
@@ -125,43 +172,50 @@ export default async function PrintHubPage({
           description={
             query || selectedMonth
               ? "Try a different search term or month."
-              : "Approved reports will appear here, grouped by month and ready to print."
+              : "Approved radiology and lab reports appear here, grouped by month and ready to print."
           }
           icon="🖨️"
         />
       ) : (
         <div className="space-y-8">
-          {groups.map(([monthKey, reports]) => (
+          {groups.map(([monthKey, items]) => (
             <section key={monthKey}>
               <div className="mb-3 flex items-baseline gap-2">
                 <h2 className="text-lg font-semibold text-slate-900">{formatMonthYear(monthKey)}</h2>
                 <span className="font-mono text-xs text-slate-400">{monthKey}</span>
                 <span className="ml-auto text-sm text-slate-500">
-                  {reports.length} report{reports.length === 1 ? "" : "s"}
+                  {items.length} report{items.length === 1 ? "" : "s"}
                 </span>
               </div>
 
               <ul className="space-y-2">
-                {reports.map((r) => (
-                  <li key={r.id}>
+                {items.map((it) => (
+                  <li key={`${it.kind}-${it.id}`}>
                     <Link
-                      href={`/receptionist/print/${r.id}`}
+                      href={it.href}
                       className="card flex items-center justify-between gap-4 p-4 transition hover:border-brand-300 hover:shadow"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-800">
-                          {r.patient.name}
+                          {it.patientName}
                           <span className="ml-2 font-mono text-xs font-normal text-slate-400">
-                            {r.patient.uhid}
+                            {it.uhid}
                           </span>
                         </p>
                         <p className="mt-0.5 truncate text-xs text-slate-500">
-                          {r.template ? MODALITY_LABELS[r.template.modality] : "Report"} ·{" "}
-                          {formatDate(r.approvedAt)}
+                          {it.label} · {formatDate(it.approvedAt)}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
-                        <StatusBadge status={r.status} />
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                            it.kind === "Lab"
+                              ? "bg-violet-100 text-violet-700 ring-violet-200"
+                              : "bg-brand-50 text-brand-700 ring-brand-200"
+                          }`}
+                        >
+                          {it.kind}
+                        </span>
                         <span aria-hidden className="text-slate-300">
                           ›
                         </span>
@@ -183,7 +237,8 @@ function Header() {
     <header className="mb-6">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Print Hub</h1>
       <p className="mt-1 text-sm text-slate-500">
-        Approved reports organized by month. Search or filter, then open a print-ready letterhead.
+        Approved radiology &amp; lab reports organized by month. Search or filter, then open a
+        print-ready letterhead.
       </p>
     </header>
   );

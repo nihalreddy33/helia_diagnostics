@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useActionState } from "react";
 import { saveService } from "@/app/actions/services";
-import { MODALITIES, MODALITY_LABELS } from "@/lib/types";
-import type { ActionResult, Modality } from "@/lib/types";
+import { MODALITIES, MODALITY_LABELS, DEPARTMENTS, DEPARTMENT_LABELS } from "@/lib/types";
+import type { ActionResult, Modality, Department } from "@/lib/types";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 
 type State = (ActionResult<{ id: string }> & { key: number }) | null;
@@ -11,6 +11,7 @@ type State = (ActionResult<{ id: string }> & { key: number }) | null;
 export type EditableService = {
   id: string;
   name: string;
+  department: Department;
   modality: Modality | null;
   price: number; // paise
   active: boolean;
@@ -19,6 +20,7 @@ export type EditableService = {
 export function ServiceForm({ service }: { service?: EditableService }) {
   const isEdit = Boolean(service);
   const uid = service?.id ?? "new";
+  const [department, setDepartment] = useState<Department>(service?.department ?? "RADIOLOGY");
 
   async function action(prev: State, formData: FormData): Promise<State> {
     const result = await saveService(formData);
@@ -63,25 +65,46 @@ export function ServiceForm({ service }: { service?: EditableService }) {
             />
           </div>
           <div>
-            <label className="field-label" htmlFor={`modality-${uid}`}>
-              Scan type
+            <label className="field-label" htmlFor={`department-${uid}`}>
+              Department
             </label>
             <select
-              id={`modality-${uid}`}
-              name="modality"
-              defaultValue={service?.modality ?? ""}
+              id={`department-${uid}`}
+              name="department"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value as Department)}
               className="field-input"
             >
-              <option value="">Non-scan</option>
-              {MODALITIES.map((m) => (
-                <option key={m} value={m}>
-                  {MODALITY_LABELS[m]}
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>
+                  {DEPARTMENT_LABELS[d]}
                 </option>
               ))}
             </select>
           </div>
         </div>
       </div>
+
+      {department === "RADIOLOGY" && (
+        <div className="sm:w-1/2">
+          <label className="field-label" htmlFor={`modality-${uid}`}>
+            Scan type
+          </label>
+          <select
+            id={`modality-${uid}`}
+            name="modality"
+            defaultValue={service?.modality ?? ""}
+            className="field-input"
+          >
+            <option value="">Select scan type…</option>
+            {MODALITIES.map((m) => (
+              <option key={m} value={m}>
+                {MODALITY_LABELS[m]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <label className="flex items-center gap-2 text-sm text-slate-700">
         <input
@@ -94,7 +117,8 @@ export function ServiceForm({ service }: { service?: EditableService }) {
       </label>
 
       <p className="text-xs text-slate-500">
-        A scan-type service automatically creates a scan order on the radiologist worklist when billed.
+        Radiology services create a scan order on the radiologist worklist; lab services create a
+        lab order on the technician&apos;s worklist; other services are billed only.
       </p>
 
       {state && !state.ok && (

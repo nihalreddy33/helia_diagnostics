@@ -38,6 +38,7 @@ export default async function BillingPage() {
             services={data.services.map<ServiceOption>((s) => ({
               id: s.id,
               name: s.name,
+              department: s.department,
               modality: s.modality,
               price: s.price,
             }))}

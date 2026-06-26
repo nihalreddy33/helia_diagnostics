@@ -14,6 +14,19 @@ enum Role {
   ADMIN
   RECEPTIONIST
   RADIOLOGIST
+  LAB_TECHNICIAN
+}
+
+enum Department {
+  RADIOLOGY
+  LAB
+  OTHER
+}
+
+enum LabFlag {
+  NORMAL
+  HIGH
+  LOW
 }
 
 enum Modality {
@@ -50,6 +63,8 @@ model User {
 
   // Reports authored by this user when acting as a radiologist.
   reports Report[] @relation("RadiologistReports")
+  // Lab reports authored by this user when acting as a lab technician.
+  labReports LabReport[] @relation("LabReports")
   // Bills raised by this user when acting as a receptionist.
   bills   Bill[]   @relation("BillsRaised")
 
@@ -64,8 +79,9 @@ model Patient {
   gender    String
   createdAt DateTime @default(now())
 
-  reports Report[]
-  bills   Bill[]
+  reports    Report[]
+  labReports LabReport[]
+  bills      Bill[]
 }
 
 model Template {
@@ -119,18 +135,21 @@ model Report {
 
 // All monetary amounts are stored as integer paise (₹1 = 100) to stay exact.
 model Service {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String    @unique
-  // When set, billing this service creates a scan order (DRAFT report) of this
-  // modality. Null = a non-scan service (e.g. consultation, registration).
-  modality  Modality?
-  price     Int // paise
-  active    Boolean   @default(true)
-  createdAt DateTime  @default(now())
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+  // Routing: RADIOLOGY → creates a scan report (radiologist worklist),
+  // LAB → creates a lab report (lab technician worklist), OTHER → no report.
+  department Department @default(OTHER)
+  // Scan type, only meaningful for RADIOLOGY services.
+  modality   Modality?
+  price      Int // paise
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
 
   billItems BillItem[]
 
   @@index([active])
+  @@index([department])
 }
 
 model Bill {
@@ -173,9 +192,79 @@ model BillItem {
   unitPrice  Int // paise
   amount     Int // paise (quantity * unitPrice)
 
-  // The scan order created for this line, if the service is a scan.
+  // The scan order created for this line, if the service is a radiology scan.
   reportId String? @unique @db.Uuid
   report   Report? @relation(fields: [reportId], references: [id], onDelete: SetNull)
 
+  // The lab order created for this line, if the service is a lab test.
+  labReportId String?    @unique @db.Uuid
+  labReport   LabReport? @relation(fields: [labReportId], references: [id], onDelete: SetNull)
+
   @@index([billId])
+}
+
+// --- Lab / Pathology ---------------------------------------------------------
+
+// A reusable lab test format (e.g. "Complete Blood Count") whose parameters are
+// injected as result rows when the technician picks it.
+model LabTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String   @unique
+  createdAt DateTime @default(now())
+
+  parameters LabTemplateParameter[]
+  reports    LabReport[]
+}
+
+model LabTemplateParameter {
+  id         String      @id @default(uuid()) @db.Uuid
+  templateId String      @db.Uuid
+  template   LabTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  name           String
+  unit           String @default("")
+  referenceRange String @default("")
+  position       Int    @default(0)
+
+  @@index([templateId])
+}
+
+model LabReport {
+  id     String       @id @default(uuid()) @db.Uuid
+  status ReportStatus @default(DRAFT)
+
+  createdMonthYear String
+  createdAt        DateTime  @default(now())
+  approvedAt       DateTime?
+
+  patientId String  @db.Uuid
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  templateId String?      @db.Uuid
+  template   LabTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  technicianId String? @db.Uuid
+  technician   User?   @relation("LabReports", fields: [technicianId], references: [id], onDelete: SetNull)
+
+  results  LabResult[]
+  billItem BillItem?
+
+  @@index([status])
+  @@index([patientId])
+  @@index([createdMonthYear])
+}
+
+model LabResult {
+  id       String    @id @default(uuid()) @db.Uuid
+  reportId String    @db.Uuid
+  report   LabReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  name           String
+  value          String  @default("")
+  unit           String  @default("")
+  referenceRange String  @default("")
+  flag           LabFlag @default(NORMAL)
+  position       Int     @default(0)
+
+  @@index([reportId])
 }

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
-import { MODALITY_LABELS, formatINR } from "@/lib/types";
+import { MODALITY_LABELS, DEPARTMENT_LABELS, formatINR } from "@/lib/types";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { EmptyState } from "@/components/EmptyState";
 import { Disclosure } from "@/components/admin/Disclosure";
@@ -52,7 +52,8 @@ export default async function ServicesPage() {
                       )}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      {s.modality ? MODALITY_LABELS[s.modality] : "Non-scan"}
+                      {DEPARTMENT_LABELS[s.department]}
+                      {s.modality ? ` · ${MODALITY_LABELS[s.modality]}` : ""}
                     </p>
                   </div>
                   <span className="font-mono text-sm font-semibold text-slate-800">
@@ -66,6 +67,7 @@ export default async function ServicesPage() {
                         service={{
                           id: s.id,
                           name: s.name,
+                          department: s.department,
                           modality: s.modality,
                           price: s.price,
                           active: s.active,

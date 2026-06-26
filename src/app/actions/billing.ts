@@ -89,21 +89,25 @@ export async function createBill(
         });
 
         for (const l of lines) {
-          // A scan service spawns a DRAFT report (the scan order).
+          // A radiology service spawns a DRAFT report (radiologist worklist);
+          // a lab service spawns a DRAFT lab report (lab technician worklist).
           let reportId: string | null = null;
-          if (l.svc.modality) {
+          let labReportId: string | null = null;
+
+          if (l.svc.department === "RADIOLOGY") {
             const report = await tx.report.create({
-              data: {
-                patientId,
-                findings: "",
-                impression: "",
-                status: "DRAFT",
-                createdMonthYear: month,
-              },
+              data: { patientId, findings: "", impression: "", status: "DRAFT", createdMonthYear: month },
               select: { id: true },
             });
             reportId = report.id;
+          } else if (l.svc.department === "LAB") {
+            const labReport = await tx.labReport.create({
+              data: { patientId, status: "DRAFT", createdMonthYear: month },
+              select: { id: true },
+            });
+            labReportId = labReport.id;
           }
+
           await tx.billItem.create({
             data: {
               billId: bill.id,
@@ -113,6 +117,7 @@ export async function createBill(
               unitPrice: l.svc.price,
               amount: l.amount,
               reportId,
+              labReportId,
             },
           });
         }
@@ -124,6 +129,7 @@ export async function createBill(
     if (result.ok) {
       revalidatePath("/receptionist/billing");
       revalidatePath("/radiologist");
+      revalidatePath("/lab");
     }
     return result;
   } catch (err) {

@@ -139,21 +139,95 @@ Declaration of the doctor conducting ultrasonography: I, {{radiologist}}, declar
     });
   }
 
+  // --- Lab technician + lab test formats -----------------------------------
+  await prisma.user.upsert({
+    where: { email: "lab@helia.example" },
+    update: { name: "Lab Technician", role: "LAB_TECHNICIAN" },
+    create: {
+      name: "Lab Technician",
+      email: "lab@helia.example",
+      password: passwordHash,
+      role: "LAB_TECHNICIAN",
+    },
+  });
+
+  const labTemplates: { title: string; params: [string, string, string][] }[] = [
+    {
+      title: "Complete Blood Count (CBC)",
+      params: [
+        ["Hemoglobin", "g/dL", "13 - 17"],
+        ["Total WBC Count", "/µL", "4000 - 11000"],
+        ["Platelet Count", "/µL", "150000 - 410000"],
+        ["RBC Count", "million/µL", "4.5 - 5.5"],
+        ["Hematocrit (PCV)", "%", "40 - 50"],
+      ],
+    },
+    {
+      title: "Lipid Profile",
+      params: [
+        ["Total Cholesterol", "mg/dL", "< 200"],
+        ["Triglycerides", "mg/dL", "< 150"],
+        ["HDL Cholesterol", "mg/dL", "> 40"],
+        ["LDL Cholesterol", "mg/dL", "< 100"],
+        ["VLDL Cholesterol", "mg/dL", "7 - 35"],
+      ],
+    },
+    {
+      title: "Thyroid Profile (T3 T4 TSH)",
+      params: [
+        ["T3 (Triiodothyronine)", "ng/dL", "80 - 200"],
+        ["T4 (Thyroxine)", "µg/dL", "5.1 - 14.1"],
+        ["TSH", "µIU/mL", "0.27 - 4.2"],
+      ],
+    },
+    {
+      title: "Liver Function Test (LFT)",
+      params: [
+        ["Bilirubin Total", "mg/dL", "0.3 - 1.2"],
+        ["SGOT (AST)", "U/L", "< 40"],
+        ["SGPT (ALT)", "U/L", "< 41"],
+        ["Alkaline Phosphatase", "U/L", "40 - 129"],
+      ],
+    },
+  ];
+  for (const t of labTemplates) {
+    const existing = await prisma.labTemplate.findUnique({ where: { title: t.title } });
+    const create = {
+      create: t.params.map(([name, unit, referenceRange], i) => ({
+        name,
+        unit,
+        referenceRange,
+        position: i,
+      })),
+    };
+    if (existing) {
+      await prisma.labTemplateParameter.deleteMany({ where: { templateId: existing.id } });
+      await prisma.labTemplate.update({ where: { id: existing.id }, data: { parameters: create } });
+    } else {
+      await prisma.labTemplate.create({ data: { title: t.title, parameters: create } });
+    }
+  }
+
   // --- Billable services (prices in paise) ---------------------------------
   const services = [
-    { name: "USG Abdomen — Male", modality: "USG" as const, price: 120000 },
-    { name: "USG Abdomen & Pelvis — Female", modality: "USG" as const, price: 130000 },
-    { name: "Obstetric / Growth Scan", modality: "USG" as const, price: 150000 },
-    { name: "Chest X-Ray (PA View)", modality: "XRAY" as const, price: 40000 },
-    { name: "CT Brain (Plain)", modality: "CT" as const, price: 300000 },
-    { name: "MRI Lumbar Spine", modality: "MRI" as const, price: 600000 },
-    { name: "Consultation", modality: null, price: 30000 },
-    { name: "Registration Fee", modality: null, price: 10000 },
+    { name: "USG Abdomen — Male", department: "RADIOLOGY" as const, modality: "USG" as const, price: 120000 },
+    { name: "USG Abdomen & Pelvis — Female", department: "RADIOLOGY" as const, modality: "USG" as const, price: 130000 },
+    { name: "Obstetric / Growth Scan", department: "RADIOLOGY" as const, modality: "USG" as const, price: 150000 },
+    { name: "Chest X-Ray (PA View)", department: "RADIOLOGY" as const, modality: "XRAY" as const, price: 40000 },
+    { name: "CT Brain (Plain)", department: "RADIOLOGY" as const, modality: "CT" as const, price: 300000 },
+    { name: "MRI Lumbar Spine", department: "RADIOLOGY" as const, modality: "MRI" as const, price: 600000 },
+    { name: "Complete Blood Count (CBC)", department: "LAB" as const, modality: null, price: 30000 },
+    { name: "Lipid Profile", department: "LAB" as const, modality: null, price: 60000 },
+    { name: "Thyroid Profile (T3 T4 TSH)", department: "LAB" as const, modality: null, price: 50000 },
+    { name: "Liver Function Test (LFT)", department: "LAB" as const, modality: null, price: 70000 },
+    { name: "Random Blood Sugar", department: "LAB" as const, modality: null, price: 10000 },
+    { name: "Consultation", department: "OTHER" as const, modality: null, price: 30000 },
+    { name: "Registration Fee", department: "OTHER" as const, modality: null, price: 10000 },
   ];
   for (const s of services) {
     await prisma.service.upsert({
       where: { name: s.name },
-      update: { modality: s.modality, price: s.price },
+      update: { department: s.department, modality: s.modality, price: s.price },
       create: s,
     });
   }

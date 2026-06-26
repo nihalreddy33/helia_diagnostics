@@ -4,9 +4,19 @@ import type {
   ReportStatus,
   PaymentMethod,
   PaymentStatus,
+  Department,
+  LabFlag,
 } from "@prisma/client";
 
-export type { Role, Modality, ReportStatus, PaymentMethod, PaymentStatus };
+export type {
+  Role,
+  Modality,
+  ReportStatus,
+  PaymentMethod,
+  PaymentStatus,
+  Department,
+  LabFlag,
+};
 
 export const PAYMENT_METHODS: readonly PaymentMethod[] = ["CASH", "CARD", "UPI"];
 
@@ -79,7 +89,12 @@ export function formatINR(paise: number): string {
   }).format((paise || 0) / 100);
 }
 
-export const ROLES: readonly Role[] = ["ADMIN", "RECEPTIONIST", "RADIOLOGIST"];
+export const ROLES: readonly Role[] = [
+  "ADMIN",
+  "RECEPTIONIST",
+  "RADIOLOGIST",
+  "LAB_TECHNICIAN",
+];
 
 export const MODALITIES: readonly Modality[] = ["XRAY", "CT", "MRI", "USG"];
 
@@ -89,6 +104,29 @@ export const ROLE_LABELS: Record<Role, string> = {
   ADMIN: "Admin",
   RECEPTIONIST: "Receptionist",
   RADIOLOGIST: "Radiologist",
+  LAB_TECHNICIAN: "Lab Technician",
+};
+
+export const DEPARTMENTS: readonly Department[] = ["RADIOLOGY", "LAB", "OTHER"];
+
+export const DEPARTMENT_LABELS: Record<Department, string> = {
+  RADIOLOGY: "Radiology (scan)",
+  LAB: "Lab test",
+  OTHER: "Other (non-clinical)",
+};
+
+export const LAB_FLAGS: readonly LabFlag[] = ["NORMAL", "HIGH", "LOW"];
+
+export const LAB_FLAG_LABELS: Record<LabFlag, string> = {
+  NORMAL: "Normal",
+  HIGH: "High",
+  LOW: "Low",
+};
+
+export const LAB_FLAG_STYLES: Record<LabFlag, string> = {
+  NORMAL: "text-slate-600",
+  HIGH: "text-red-600 font-semibold",
+  LOW: "text-amber-600 font-semibold",
 };
 
 export const MODALITY_LABELS: Record<Modality, string> = {

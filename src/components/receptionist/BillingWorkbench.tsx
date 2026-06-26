@@ -9,20 +9,27 @@ import { searchPatients } from "@/app/actions/patients";
 import type { PatientHit } from "@/app/actions/patients";
 import {
   MODALITY_LABELS,
+  DEPARTMENT_LABELS,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
   formatINR,
   rupeesToPaise,
 } from "@/lib/types";
-import type { ActionResult, Modality } from "@/lib/types";
+import type { ActionResult, Modality, Department } from "@/lib/types";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 
 export type ServiceOption = {
   id: string;
   name: string;
+  department: Department;
   modality: Modality | null;
   price: number; // paise
 };
+
+function serviceTag(s: ServiceOption): string {
+  if (s.department === "RADIOLOGY" && s.modality) return MODALITY_LABELS[s.modality];
+  return DEPARTMENT_LABELS[s.department];
+}
 
 type Line = { service: ServiceOption; quantity: number };
 type State = (ActionResult<{ id: string; invoiceNo: string }> & { key: number }) | null;
@@ -131,9 +138,7 @@ export function BillingWorkbench({ services }: { services: ServiceOption[] }) {
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-medium text-slate-800">{s.name}</span>
-                      <span className="text-xs text-slate-400">
-                        {s.modality ? MODALITY_LABELS[s.modality] : "Non-scan"}
-                      </span>
+                      <span className="text-xs text-slate-400">{serviceTag(s)}</span>
                     </span>
                     <span className="shrink-0 font-mono text-xs font-semibold text-slate-700">
                       {formatINR(s.price)}
