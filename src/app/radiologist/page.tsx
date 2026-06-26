@@ -25,6 +25,7 @@ export default async function RadiologistPage() {
               impression: true,
               footer: true,
               templateId: true,
+              billItem: { select: { description: true } },
             },
           },
         },
@@ -67,6 +68,7 @@ export default async function RadiologistPage() {
         name: p.name,
         age: p.age,
         gender: p.gender,
+        orderedService: p.reports[0]?.billItem?.description ?? null,
         draft: draft
           ? {
               id: draft.id,

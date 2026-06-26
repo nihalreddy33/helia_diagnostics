@@ -7,6 +7,40 @@ import { describePrismaError } from "@/lib/prisma-errors";
 import { nextUhid } from "@/lib/uhid";
 import type { ActionResult } from "@/lib/types";
 
+export type PatientHit = {
+  id: string;
+  uhid: string;
+  name: string;
+  age: number;
+  gender: string;
+};
+
+/** RECEPTIONIST only — look up existing patients by name or UHID. */
+export async function searchPatients(query: string): Promise<PatientHit[]> {
+  const q = query.trim();
+  const result = await withRole("RECEPTIONIST", async () => {
+    if (!q) {
+      return prisma.patient.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: { id: true, uhid: true, name: true, age: true, gender: true },
+      });
+    }
+    return prisma.patient.findMany({
+      where: {
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { uhid: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: { id: true, uhid: true, name: true, age: true, gender: true },
+    });
+  });
+  return result.ok ? result.data : [];
+}
+
 const GENDERS = ["Male", "Female", "Other"];
 
 /** RECEPTIONIST only — register a patient with an auto-generated UHID. */

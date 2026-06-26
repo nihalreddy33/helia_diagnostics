@@ -139,6 +139,25 @@ Declaration of the doctor conducting ultrasonography: I, {{radiologist}}, declar
     });
   }
 
+  // --- Billable services (prices in paise) ---------------------------------
+  const services = [
+    { name: "USG Abdomen — Male", modality: "USG" as const, price: 120000 },
+    { name: "USG Abdomen & Pelvis — Female", modality: "USG" as const, price: 130000 },
+    { name: "Obstetric / Growth Scan", modality: "USG" as const, price: 150000 },
+    { name: "Chest X-Ray (PA View)", modality: "XRAY" as const, price: 40000 },
+    { name: "CT Brain (Plain)", modality: "CT" as const, price: 300000 },
+    { name: "MRI Lumbar Spine", modality: "MRI" as const, price: 600000 },
+    { name: "Consultation", modality: null, price: 30000 },
+    { name: "Registration Fee", modality: null, price: 10000 },
+  ];
+  for (const s of services) {
+    await prisma.service.upsert({
+      where: { name: s.name },
+      update: { modality: s.modality, price: s.price },
+      create: s,
+    });
+  }
+
   // --- Patients ------------------------------------------------------------
   const p1 = await prisma.patient.upsert({
     where: { uhid: "HELIA-1001" },

@@ -28,6 +28,18 @@ enum ReportStatus {
   APPROVED
 }
 
+enum PaymentMethod {
+  CASH
+  CARD
+  UPI
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   name      String
@@ -38,6 +50,8 @@ model User {
 
   // Reports authored by this user when acting as a radiologist.
   reports Report[] @relation("RadiologistReports")
+  // Bills raised by this user when acting as a receptionist.
+  bills   Bill[]   @relation("BillsRaised")
 
   @@index([role])
 }
@@ -51,6 +65,7 @@ model Patient {
   createdAt DateTime @default(now())
 
   reports Report[]
+  bills   Bill[]
 }
 
 model Template {
@@ -92,7 +107,75 @@ model Report {
   radiologistId String? @db.Uuid
   radiologist   User?   @relation("RadiologistReports", fields: [radiologistId], references: [id], onDelete: SetNull)
 
+  // The bill line that ordered this scan (when created from billing).
+  billItem BillItem?
+
   @@index([status])
   @@index([createdMonthYear])
   @@index([patientId])
+}
+
+// --- Billing -----------------------------------------------------------------
+
+// All monetary amounts are stored as integer paise (₹1 = 100) to stay exact.
+model Service {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  // When set, billing this service creates a scan order (DRAFT report) of this
+  // modality. Null = a non-scan service (e.g. consultation, registration).
+  modality  Modality?
+  price     Int // paise
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  billItems BillItem[]
+
+  @@index([active])
+}
+
+model Bill {
+  id        String @id @default(uuid()) @db.Uuid
+  invoiceNo String @unique // e.g. HELIA-INV-1001
+
+  patientId String  @db.Uuid
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  receptionistId String? @db.Uuid
+  receptionist   User?   @relation("BillsRaised", fields: [receptionistId], references: [id], onDelete: SetNull)
+
+  subtotal      Int            @default(0) // paise, before discount
+  discount      Int            @default(0) // paise
+  total         Int            @default(0) // paise, subtotal - discount
+  amountPaid    Int            @default(0) // paise
+  paymentMethod PaymentMethod?
+  status        PaymentStatus  @default(UNPAID)
+
+  createdMonthYear String
+  createdAt        DateTime @default(now())
+
+  items BillItem[]
+
+  @@index([createdMonthYear])
+  @@index([patientId])
+  @@index([status])
+}
+
+model BillItem {
+  id     String @id @default(uuid()) @db.Uuid
+  billId String @db.Uuid
+  bill   Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  serviceId String?  @db.Uuid
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  description String // snapshot of the service name at billing time
+  quantity   Int    @default(1)
+  unitPrice  Int // paise
+  amount     Int // paise (quantity * unitPrice)
+
+  // The scan order created for this line, if the service is a scan.
+  reportId String? @unique @db.Uuid
+  report   Report? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([billId])
 }

@@ -1,6 +1,48 @@
-import type { Role, Modality, ReportStatus } from "@prisma/client";
+import type {
+  Role,
+  Modality,
+  ReportStatus,
+  PaymentMethod,
+  PaymentStatus,
+} from "@prisma/client";
 
-export type { Role, Modality, ReportStatus };
+export type { Role, Modality, ReportStatus, PaymentMethod, PaymentStatus };
+
+export const PAYMENT_METHODS: readonly PaymentMethod[] = ["CASH", "CARD", "UPI"];
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  CASH: "Cash",
+  CARD: "Card",
+  UPI: "UPI",
+};
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  UNPAID: "Unpaid",
+  PARTIAL: "Partial",
+  PAID: "Paid",
+};
+
+export const PAYMENT_STATUS_STYLES: Record<PaymentStatus, string> = {
+  UNPAID: "bg-red-100 text-red-800 ring-red-200",
+  PARTIAL: "bg-amber-100 text-amber-800 ring-amber-200",
+  PAID: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+};
+
+/** Money is stored as integer paise. Convert a rupee string/number to paise. */
+export function rupeesToPaise(rupees: string | number): number {
+  const n = typeof rupees === "string" ? Number(rupees.replace(/[,₹\s]/g, "")) : rupees;
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 100);
+}
+
+/** Format integer paise as an INR amount, e.g. 120000 -> "₹1,200.00". */
+export function formatINR(paise: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 2,
+  }).format((paise || 0) / 100);
+}
 
 export const ROLES: readonly Role[] = ["ADMIN", "RECEPTIONIST", "RADIOLOGIST"];
 

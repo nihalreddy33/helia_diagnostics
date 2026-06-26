@@ -6,11 +6,13 @@ export type NavItem = { href: string; label: string };
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ADMIN: [
     { href: "/admin/users", label: "Users" },
+    { href: "/admin/services", label: "Services" },
     { href: "/admin/templates", label: "Templates" },
     { href: "/admin/records", label: "Records" },
   ],
   RECEPTIONIST: [
     { href: "/receptionist", label: "Register" },
+    { href: "/receptionist/billing", label: "Billing" },
     { href: "/receptionist/print", label: "Print Hub" },
   ],
   RADIOLOGIST: [{ href: "/radiologist", label: "Worklist" }],
