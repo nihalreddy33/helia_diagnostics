@@ -28,6 +28,41 @@ export const PAYMENT_STATUS_STYLES: Record<PaymentStatus, string> = {
   PAID: "bg-emerald-100 text-emerald-800 ring-emerald-200",
 };
 
+/** Format a date with time in IST, e.g. "26 Jun 2026, 3:45 PM IST". */
+export function formatDateTimeIST(date: Date): string {
+  const s = new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  }).format(date);
+  return `${s} IST`;
+}
+
+/** Format just the time in IST, e.g. "3:45 PM". */
+export function formatTimeIST(date: Date): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  }).format(date);
+}
+
+/** Format a long date in IST, e.g. "Thursday, 26 June 2026". */
+export function formatLongDateIST(date: Date): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  }).format(date);
+}
+
 /** Money is stored as integer paise. Convert a rupee string/number to paise. */
 export function rupeesToPaise(rupees: string | number): number {
   const n = typeof rupees === "string" ? Number(rupees.replace(/[,₹\s]/g, "")) : rupees;

@@ -6,20 +6,12 @@ import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { PrintButton } from "@/components/receptionist/PrintButton";
 import {
   formatINR,
+  formatDateTimeIST,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
 } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 export default async function InvoicePage({
   params,
@@ -70,7 +62,7 @@ export default async function InvoicePage({
           <div className="text-right">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Invoice</p>
             <p className="font-mono text-sm font-semibold text-slate-800">{bill.invoiceNo}</p>
-            <p className="mt-1 text-xs text-slate-500">{formatDate(bill.createdAt)}</p>
+            <p className="mt-1 text-xs text-slate-500">{formatDateTimeIST(bill.createdAt)}</p>
           </div>
         </header>
 

@@ -13,6 +13,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   RECEPTIONIST: [
     { href: "/receptionist", label: "Register" },
     { href: "/receptionist/billing", label: "Billing" },
+    { href: "/receptionist/collection", label: "Collection" },
     { href: "/receptionist/print", label: "Print Hub" },
   ],
   RADIOLOGIST: [{ href: "/radiologist", label: "Worklist" }],
