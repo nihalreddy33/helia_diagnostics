@@ -54,6 +54,17 @@ export async function searchPatients(query: string): Promise<PatientHit[]> {
 
 const GENDERS = ["Male", "Female", "Other"];
 
+/**
+ * Normalize a mobile number to a 10-digit Indian mobile, accepting an optional
+ * +91 country code or leading 0. Returns null if it isn't a valid mobile.
+ */
+function normalizeMobile(raw: string): string | null {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return /^[6-9]\d{9}$/.test(digits) ? digits : null;
+}
+
 /** RECEPTIONIST only — register a patient with an auto-generated UHID. */
 export async function createPatient(
   formData: FormData,
@@ -71,9 +82,10 @@ export async function createPatient(
   if (!GENDERS.includes(gender)) {
     return { ok: false, error: "Please select a gender." };
   }
-  // Mobile is required: at least 10 digits after stripping spaces/+/-.
-  if ((mobile.match(/\d/g) ?? []).length < 10) {
-    return { ok: false, error: "Enter a valid mobile number (at least 10 digits)." };
+  // Mobile is required and must be a valid 10-digit mobile number.
+  const normalizedMobile = normalizeMobile(mobile);
+  if (!normalizedMobile) {
+    return { ok: false, error: "Enter a valid 10-digit mobile number." };
   }
 
   try {
@@ -83,7 +95,7 @@ export async function createPatient(
       return prisma.$transaction(async (tx) => {
         const uhid = await nextUhid(tx);
         return tx.patient.create({
-          data: { uhid, name, age, gender, mobile },
+          data: { uhid, name, age, gender, mobile: normalizedMobile },
           select: { id: true, uhid: true },
         });
       });

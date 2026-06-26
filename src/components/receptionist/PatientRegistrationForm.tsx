@@ -65,10 +65,13 @@ export function PatientRegistrationForm() {
             id="mobile"
             name="mobile"
             type="tel"
-            inputMode="tel"
+            inputMode="numeric"
             required
             autoComplete="off"
-            placeholder="e.g. 98765 43210"
+            maxLength={14}
+            pattern="(\+?91[\s-]?)?[6-9]\d{9}"
+            title="Enter a valid 10-digit mobile number"
+            placeholder="e.g. 9876543210"
             className="field-input"
           />
         </div>
