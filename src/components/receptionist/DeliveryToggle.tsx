@@ -41,10 +41,12 @@ export function DeliveryToggle({
   kind,
   id,
   deliveredAt,
+  deliveredBy,
 }: {
   kind: "report" | "lab";
   id: string;
   deliveredAt: Date | null;
+  deliveredBy?: string | null;
 }) {
   const [, formAction] = useActionState<State, FormData>(action, null);
   const delivered = deliveredAt !== null;
@@ -58,6 +60,7 @@ export function DeliveryToggle({
         <span className="text-right text-xs">
           <span className="block font-medium text-emerald-700">Delivered</span>
           <span className="block text-slate-400">{formatDateTimeIST(deliveredAt!)}</span>
+          {deliveredBy && <span className="block text-slate-400">by {deliveredBy}</span>}
         </span>
       ) : (
         <span className="text-xs font-medium text-amber-600">Not delivered</span>

@@ -17,6 +17,7 @@ type PrintItem = {
   label: string;
   approvedAt: Date | null;
   deliveredAt: Date | null;
+  deliveredBy: string | null;
   monthYear: string;
   href: string;
 };
@@ -34,11 +35,12 @@ function formatDate(date: Date | null): string {
 export default async function PrintHubPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; month?: string }>;
+  searchParams: Promise<{ q?: string; month?: string; delivery?: string }>;
 }) {
-  const { q, month } = await searchParams;
+  const { q, month, delivery } = await searchParams;
   const query = (q ?? "").trim();
   const selectedMonth = (month ?? "").trim();
+  const deliveryFilter = delivery === "pending" || delivery === "delivered" ? delivery : "";
 
   const data = await safeQuery(async () => {
     const radWhere: Prisma.ReportWhereInput = { status: "APPROVED" };
@@ -46,6 +48,13 @@ export default async function PrintHubPage({
     if (selectedMonth) {
       radWhere.createdMonthYear = selectedMonth;
       labWhere.createdMonthYear = selectedMonth;
+    }
+    if (deliveryFilter === "pending") {
+      radWhere.deliveredAt = null;
+      labWhere.deliveredAt = null;
+    } else if (deliveryFilter === "delivered") {
+      radWhere.deliveredAt = { not: null };
+      labWhere.deliveredAt = { not: null };
     }
     if (query) {
       radWhere.OR = [
@@ -61,10 +70,18 @@ export default async function PrintHubPage({
     }
 
     const [reports, labReports, radMonths, labMonths] = await Promise.all([
-      prisma.report.findMany({ where: radWhere, include: { patient: true, template: true } }),
+      prisma.report.findMany({
+        where: radWhere,
+        include: { patient: true, template: true, deliveredBy: { select: { name: true } } },
+      }),
       prisma.labReport.findMany({
         where: labWhere,
-        include: { patient: true, template: true, billItem: { select: { description: true } } },
+        include: {
+          patient: true,
+          template: true,
+          billItem: { select: { description: true } },
+          deliveredBy: { select: { name: true } },
+        },
       }),
       prisma.report.groupBy({ by: ["createdMonthYear"], where: { status: "APPROVED" } }),
       prisma.labReport.groupBy({ by: ["createdMonthYear"], where: { status: "APPROVED" } }),
@@ -86,6 +103,7 @@ export default async function PrintHubPage({
         label: r.template ? MODALITY_LABELS[r.template.modality] : "Report",
         approvedAt: r.approvedAt,
         deliveredAt: r.deliveredAt,
+        deliveredBy: r.deliveredBy?.name ?? null,
         monthYear: r.createdMonthYear,
         href: `/receptionist/print/${r.id}`,
       })),
@@ -97,6 +115,7 @@ export default async function PrintHubPage({
         label: r.template?.title ?? r.billItem?.description ?? "Lab report",
         approvedAt: r.approvedAt,
         deliveredAt: r.deliveredAt,
+        deliveredBy: r.deliveredBy?.name ?? null,
         monthYear: r.createdMonthYear,
         href: `/receptionist/print/lab/${r.id}`,
       })),
@@ -154,6 +173,16 @@ export default async function PrintHubPage({
             ))}
           </select>
         </div>
+        <div className="min-w-[9rem]">
+          <label htmlFor="delivery" className="field-label">
+            Delivery
+          </label>
+          <select id="delivery" name="delivery" defaultValue={deliveryFilter} className="field-input">
+            <option value="">All</option>
+            <option value="pending">Pending delivery</option>
+            <option value="delivered">Delivered</option>
+          </select>
+        </div>
         <div className="flex gap-2">
           <button
             type="submit"
@@ -172,10 +201,16 @@ export default async function PrintHubPage({
 
       {groups.length === 0 ? (
         <EmptyState
-          title={query || selectedMonth ? "No matching reports" : "No approved reports yet"}
+          title={
+            query || selectedMonth || deliveryFilter
+              ? deliveryFilter === "pending"
+                ? "Nothing pending delivery"
+                : "No matching reports"
+              : "No approved reports yet"
+          }
           description={
-            query || selectedMonth
-              ? "Try a different search term or month."
+            query || selectedMonth || deliveryFilter
+              ? "Try a different search term, month, or delivery status."
               : "Approved radiology and lab reports appear here, grouped by month and ready to print."
           }
           icon="🖨️"
@@ -224,6 +259,7 @@ export default async function PrintHubPage({
                       kind={it.kind === "Lab" ? "lab" : "report"}
                       id={it.id}
                       deliveredAt={it.deliveredAt}
+                      deliveredBy={it.deliveredBy}
                     />
                   </li>
                 ))}

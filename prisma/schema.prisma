@@ -67,6 +67,9 @@ model User {
   labReports LabReport[] @relation("LabReports")
   // Bills raised by this user when acting as a receptionist.
   bills   Bill[]   @relation("BillsRaised")
+  // Reports this user handed to patients (reception delivery tracking).
+  reportsDelivered    Report[]    @relation("ReportsDelivered")
+  labReportsDelivered LabReport[] @relation("LabReportsDelivered")
   // Audit-trail entries for this user.
   activityLogs ActivityLog[]
 
@@ -132,8 +135,10 @@ model Report {
 
   createdAt  DateTime  @default(now())
   approvedAt DateTime?
-  // When the printed report was handed to the patient (reception tracking).
-  deliveredAt DateTime?
+  // When the printed report was handed to the patient, and by whom.
+  deliveredAt   DateTime?
+  deliveredById String?   @db.Uuid
+  deliveredBy   User?     @relation("ReportsDelivered", fields: [deliveredById], references: [id], onDelete: SetNull)
 
   patientId String  @db.Uuid
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
@@ -260,8 +265,10 @@ model LabReport {
   createdMonthYear String
   createdAt        DateTime  @default(now())
   approvedAt       DateTime?
-  // When the printed report was handed to the patient (reception tracking).
+  // When the printed report was handed to the patient, and by whom.
   deliveredAt      DateTime?
+  deliveredById    String?   @db.Uuid
+  deliveredBy      User?     @relation("LabReportsDelivered", fields: [deliveredById], references: [id], onDelete: SetNull)
 
   patientId String  @db.Uuid
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)

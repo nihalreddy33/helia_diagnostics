@@ -25,17 +25,18 @@ export async function setDelivered(
   try {
     const result = await withRole("RECEPTIONIST", async (user) => {
       const deliveredAt = deliver ? new Date() : null;
+      const deliveredById = deliver ? user.id : null;
 
       if (kind === "report") {
         const r = await prisma.report.findUnique({ where: { id }, select: { status: true } });
         if (!r) throw new Error("NOT_FOUND");
         if (r.status !== "APPROVED") throw new Error("NOT_APPROVED");
-        await prisma.report.update({ where: { id }, data: { deliveredAt } });
+        await prisma.report.update({ where: { id }, data: { deliveredAt, deliveredById } });
       } else {
         const r = await prisma.labReport.findUnique({ where: { id }, select: { status: true } });
         if (!r) throw new Error("NOT_FOUND");
         if (r.status !== "APPROVED") throw new Error("NOT_APPROVED");
-        await prisma.labReport.update({ where: { id }, data: { deliveredAt } });
+        await prisma.labReport.update({ where: { id }, data: { deliveredAt, deliveredById } });
       }
 
       if (deliver) {
