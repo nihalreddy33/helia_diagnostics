@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { EmptyState } from "@/components/EmptyState";
+import { DeliveryToggle } from "@/components/receptionist/DeliveryToggle";
 import { MODALITY_LABELS, formatMonthYear } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ type PrintItem = {
   uhid: string;
   label: string;
   approvedAt: Date | null;
+  deliveredAt: Date | null;
   monthYear: string;
   href: string;
 };
@@ -83,6 +85,7 @@ export default async function PrintHubPage({
         uhid: r.patient.uhid,
         label: r.template ? MODALITY_LABELS[r.template.modality] : "Report",
         approvedAt: r.approvedAt,
+        deliveredAt: r.deliveredAt,
         monthYear: r.createdMonthYear,
         href: `/receptionist/print/${r.id}`,
       })),
@@ -93,6 +96,7 @@ export default async function PrintHubPage({
         uhid: r.patient.uhid,
         label: r.template?.title ?? r.billItem?.description ?? "Lab report",
         approvedAt: r.approvedAt,
+        deliveredAt: r.deliveredAt,
         monthYear: r.createdMonthYear,
         href: `/receptionist/print/lab/${r.id}`,
       })),
@@ -190,13 +194,13 @@ export default async function PrintHubPage({
 
               <ul className="space-y-2">
                 {items.map((it) => (
-                  <li key={`${it.kind}-${it.id}`}>
-                    <Link
-                      href={it.href}
-                      className="card flex items-center justify-between gap-4 p-4 transition hover:border-brand-300 hover:shadow"
-                    >
+                  <li
+                    key={`${it.kind}-${it.id}`}
+                    className="card flex flex-wrap items-center gap-3 p-4 transition hover:border-brand-300"
+                  >
+                    <Link href={it.href} className="group flex min-w-0 flex-1 items-center gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-800">
+                        <p className="truncate text-sm font-semibold text-slate-800 group-hover:text-brand-700">
                           {it.patientName}
                           <span className="ml-2 font-mono text-xs font-normal text-slate-400">
                             {it.uhid}
@@ -206,21 +210,21 @@ export default async function PrintHubPage({
                           {it.label} · {formatDate(it.approvedAt)}
                         </p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                            it.kind === "Lab"
-                              ? "bg-violet-100 text-violet-700 ring-violet-200"
-                              : "bg-brand-50 text-brand-700 ring-brand-200"
-                          }`}
-                        >
-                          {it.kind}
-                        </span>
-                        <span aria-hidden className="text-slate-300">
-                          ›
-                        </span>
-                      </div>
+                      <span
+                        className={`ml-1 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                          it.kind === "Lab"
+                            ? "bg-violet-100 text-violet-700 ring-violet-200"
+                            : "bg-brand-50 text-brand-700 ring-brand-200"
+                        }`}
+                      >
+                        {it.kind}
+                      </span>
                     </Link>
+                    <DeliveryToggle
+                      kind={it.kind === "Lab" ? "lab" : "report"}
+                      id={it.id}
+                      deliveredAt={it.deliveredAt}
+                    />
                   </li>
                 ))}
               </ul>
