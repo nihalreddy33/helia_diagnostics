@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
-import { PrintButton } from "@/components/receptionist/PrintButton";
+import { PrintToolbar } from "@/components/receptionist/PrintToolbar";
 import {
   formatINR,
   formatDateTimeIST,
@@ -37,23 +36,12 @@ export default async function InvoicePage({
   if (!bill) notFound();
 
   return (
-    <div>
-      {/* Toolbar — hidden when printing */}
-      <div className="no-print sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-          <Link
-            href="/receptionist/billing"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition hover:text-brand-700"
-          >
-            <span aria-hidden>‹</span> Back to Billing
-          </Link>
-          <PrintButton />
-        </div>
-      </div>
+    <div className="print-page">
+      <PrintToolbar backHref="/receptionist/billing" backLabel="Back to Billing" />
 
       <article className="print-sheet">
         <header className="flex items-start justify-between">
-          <div>
+          <div className="letterhead">
             <h1 className="text-2xl font-bold tracking-tight text-brand-700">Helia Diagnostics</h1>
             <p className="mt-1 text-xs tracking-wide text-slate-500">
               Diagnostic Imaging &amp; Radiology · Helia Diagnostics Center

@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
-import { PrintButton } from "@/components/receptionist/PrintButton";
+import { PrintToolbar } from "@/components/receptionist/PrintToolbar";
 import { LAB_FLAG_LABELS, LAB_FLAG_STYLES } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -59,21 +58,11 @@ export default async function LabReportPrintPage({
   const testName = report.template?.title ?? report.billItem?.description ?? "Laboratory Report";
 
   return (
-    <div>
-      <div className="no-print sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-          <Link
-            href="/receptionist/print"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition hover:text-brand-700"
-          >
-            <span aria-hidden>‹</span> Back to Print Hub
-          </Link>
-          <PrintButton />
-        </div>
-      </div>
+    <div className="print-page">
+      <PrintToolbar backHref="/receptionist/print" backLabel="Back to Print Hub" />
 
       <article className="print-sheet">
-        <header className="text-center">
+        <header className="letterhead text-center">
           <h1 className="text-3xl font-bold tracking-tight text-brand-700">Helia Diagnostics</h1>
           <hr className="mx-auto mt-3 w-24 border-t-2 border-brand-600" />
           <p className="mt-3 text-xs tracking-wide text-slate-500">

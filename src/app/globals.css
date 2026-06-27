@@ -45,6 +45,13 @@
   color: #0f172a;
 }
 
+/* Letterhead toggle: when the .letterhead-toggle checkbox is unchecked, hide the
+   clinic letterhead but keep its footprint, leaving blank space for printing on
+   pre-printed letterhead stationery. Pure CSS — applies on screen and in print. */
+.print-page:has(.letterhead-toggle:not(:checked)) .letterhead {
+  visibility: hidden;
+}
+
 @media print {
   @page {
     size: A4;
