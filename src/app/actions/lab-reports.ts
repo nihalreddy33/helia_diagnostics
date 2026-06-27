@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { withRole } from "@/lib/auth";
 import { describePrismaError } from "@/lib/prisma-errors";
 import { LAB_FLAGS } from "@/lib/types";
+import { logActivity } from "@/lib/activity";
 import type { ActionResult, LabFlag, ReportStatus } from "@/lib/types";
 
 type ResultInput = {
@@ -66,7 +67,7 @@ export async function saveLabReport(
       if (existing.status === "APPROVED") throw new Error("LOCKED");
 
       // Rewrite the result rows and report state in one transaction.
-      return prisma.$transaction(async (tx) => {
+      const saved = await prisma.$transaction(async (tx) => {
         await tx.labResult.deleteMany({ where: { reportId } });
         const approvedFields =
           intent === "APPROVED"
@@ -92,6 +93,14 @@ export async function saveLabReport(
           select: { id: true, status: true },
         });
       });
+
+      if (saved.status === "APPROVED") {
+        await logActivity(
+          { id: user.id, name: user.name, role: user.role },
+          "LAB_REPORT_APPROVED",
+        );
+      }
+      return saved;
     });
 
     if (result.ok) {

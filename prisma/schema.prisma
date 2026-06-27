@@ -67,8 +67,26 @@ model User {
   labReports LabReport[] @relation("LabReports")
   // Bills raised by this user when acting as a receptionist.
   bills   Bill[]   @relation("BillsRaised")
+  // Audit-trail entries for this user.
+  activityLogs ActivityLog[]
 
   @@index([role])
+}
+
+// Audit trail of user activity (logins, key actions). Name/role are snapshotted
+// so the log survives even if the user is later deleted.
+model ActivityLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName  String
+  userRole  Role
+  action    String // e.g. LOGIN, LOGOUT, BILL_CREATED
+  detail    String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Patient {

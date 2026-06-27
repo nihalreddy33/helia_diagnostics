@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { withRole } from "@/lib/auth";
 import { describePrismaError } from "@/lib/prisma-errors";
 import { nextUhid } from "@/lib/uhid";
+import { logActivity } from "@/lib/activity";
 import type { ActionResult } from "@/lib/types";
 
 export type PatientHit = {
@@ -89,16 +90,22 @@ export async function createPatient(
   }
 
   try {
-    const result = await withRole("RECEPTIONIST", async () => {
+    const result = await withRole("RECEPTIONIST", async (user) => {
       // Generate the UHID and insert the patient atomically so concurrent
       // intakes can't claim the same sequence number.
-      return prisma.$transaction(async (tx) => {
+      const patient = await prisma.$transaction(async (tx) => {
         const uhid = await nextUhid(tx);
         return tx.patient.create({
           data: { uhid, name, age, gender, mobile: normalizedMobile },
           select: { id: true, uhid: true },
         });
       });
+      await logActivity(
+        { id: user.id, name: user.name, role: user.role },
+        "PATIENT_REGISTERED",
+        `${name} (${patient.uhid})`,
+      );
+      return patient;
     });
     if (result.ok) {
       revalidatePath("/receptionist");

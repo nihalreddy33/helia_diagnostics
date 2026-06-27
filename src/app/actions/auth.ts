@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { createSession, destroySession } from "@/lib/session";
+import { createSession, destroySession, getCurrentUser } from "@/lib/session";
+import { logActivity } from "@/lib/activity";
 import { HOME_BY_ROLE } from "@/lib/nav";
 import type { ActionResult } from "@/lib/types";
 
@@ -30,11 +31,16 @@ export async function login(
   }
 
   await createSession(user.id);
+  await logActivity({ id: user.id, name: user.name, role: user.role }, "LOGIN");
   redirect(HOME_BY_ROLE[user.role]); // throws NEXT_REDIRECT — never returns
 }
 
 /** End the current session and return to the login screen. */
 export async function logout(): Promise<void> {
+  const user = await getCurrentUser();
+  if (user) {
+    await logActivity({ id: user.id, name: user.name, role: user.role }, "LOGOUT");
+  }
   await destroySession();
   redirect("/login");
 }

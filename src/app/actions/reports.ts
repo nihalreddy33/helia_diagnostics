@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { withRole } from "@/lib/auth";
 import { describePrismaError } from "@/lib/prisma-errors";
 import { currentMonthYear } from "@/lib/types";
+import { logActivity } from "@/lib/activity";
 import type { ActionResult, ReportStatus } from "@/lib/types";
 
 type SaveIntent = "DRAFT" | "APPROVED";
@@ -47,6 +48,7 @@ export async function saveReport(
           ? { status: "APPROVED" as const, approvedAt: new Date() }
           : { status: "DRAFT" as const };
 
+      let saved: { id: string; status: ReportStatus };
       if (reportId) {
         const existing = await prisma.report.findUnique({
           where: { id: reportId },
@@ -55,26 +57,34 @@ export async function saveReport(
         if (!existing) throw new Error("NOT_FOUND");
         if (existing.status === "APPROVED") throw new Error("LOCKED");
 
-        return prisma.report.update({
+        saved = await prisma.report.update({
           where: { id: reportId },
           data: { templateId, findings, impression, footer, radiologistId: user.id, ...approvedFields },
           select: { id: true, status: true },
         });
+      } else {
+        saved = await prisma.report.create({
+          data: {
+            patientId,
+            templateId,
+            findings,
+            impression,
+            footer,
+            radiologistId: user.id,
+            createdMonthYear: currentMonthYear(),
+            ...approvedFields,
+          },
+          select: { id: true, status: true },
+        });
       }
 
-      return prisma.report.create({
-        data: {
-          patientId,
-          templateId,
-          findings,
-          impression,
-          footer,
-          radiologistId: user.id,
-          createdMonthYear: currentMonthYear(),
-          ...approvedFields,
-        },
-        select: { id: true, status: true },
-      });
+      if (saved.status === "APPROVED") {
+        await logActivity(
+          { id: user.id, name: user.name, role: user.role },
+          "REPORT_APPROVED",
+        );
+      }
+      return saved;
     });
 
     if (result.ok) {

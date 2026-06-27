@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { withRole } from "@/lib/auth";
 import { describePrismaError } from "@/lib/prisma-errors";
 import { nextInvoiceNo } from "@/lib/invoice";
+import { logActivity } from "@/lib/activity";
 import { currentMonthYear, rupeesToPaise } from "@/lib/types";
 import type { ActionResult, PaymentMethod, PaymentStatus } from "@/lib/types";
 
@@ -54,7 +55,7 @@ export async function createBill(
 
   try {
     const result = await withRole("RECEPTIONIST", async (user) => {
-      return prisma.$transaction(async (tx) => {
+      const created = await prisma.$transaction(async (tx) => {
         const patient = await tx.patient.findUnique({ where: { id: patientId } });
         if (!patient) throw new Error("PATIENT_NOT_FOUND");
 
@@ -127,6 +128,12 @@ export async function createBill(
 
         return bill;
       });
+      await logActivity(
+        { id: user.id, name: user.name, role: user.role },
+        "BILL_CREATED",
+        `Invoice ${created.invoiceNo}`,
+      );
+      return created;
     });
 
     if (result.ok) {

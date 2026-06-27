@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { withRole } from "@/lib/auth";
 import { describePrismaError } from "@/lib/prisma-errors";
+import { logActivity } from "@/lib/activity";
 import type { ActionResult } from "@/lib/types";
 
 export type DeletableEntity = "report" | "patient" | "template" | "user";
@@ -43,6 +44,11 @@ export async function hardDelete(
           await prisma.user.delete({ where: { id } });
           break;
       }
+      await logActivity(
+        { id: admin.id, name: admin.name, role: admin.role },
+        "RECORD_DELETED",
+        entity,
+      );
       return { entity, id };
     });
 

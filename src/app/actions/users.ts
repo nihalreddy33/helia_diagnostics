@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { withRole } from "@/lib/auth";
 import { describePrismaError } from "@/lib/prisma-errors";
+import { logActivity } from "@/lib/activity";
 import { ROLES } from "@/lib/types";
 import type { ActionResult, Role } from "@/lib/types";
 
@@ -29,12 +30,18 @@ export async function createUser(
   }
 
   try {
-    const result = await withRole("ADMIN", async () => {
+    const result = await withRole("ADMIN", async (admin) => {
       const hash = await bcrypt.hash(password, 10);
-      return prisma.user.create({
+      const created = await prisma.user.create({
         data: { name, email, password: hash, role: role as Role },
         select: { id: true },
       });
+      await logActivity(
+        { id: admin.id, name: admin.name, role: admin.role },
+        "USER_CREATED",
+        `${name} (${email})`,
+      );
+      return created;
     });
     if (result.ok) revalidatePath("/admin/users");
     return result;
