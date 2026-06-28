@@ -39,7 +39,13 @@ async function action(prev: State, formData: FormData): Promise<State> {
   return { ...result, key: (prev?.key ?? 0) + 1 };
 }
 
-export function BillingWorkbench({ services }: { services: ServiceOption[] }) {
+export function BillingWorkbench({
+  services,
+  referringDoctors = [],
+}: {
+  services: ServiceOption[];
+  referringDoctors?: string[];
+}) {
   const router = useRouter();
   const [patient, setPatient] = useState<PatientHit | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
@@ -165,9 +171,17 @@ export function BillingWorkbench({ services }: { services: ServiceOption[] }) {
             type="text"
             required
             autoComplete="off"
+            list="referring-doctors"
             placeholder="e.g. Dr. Mehta (or Self)"
             className="field-input"
           />
+          {referringDoctors.length > 0 && (
+            <datalist id="referring-doctors">
+              {referringDoctors.map((d) => (
+                <option key={d} value={d} />
+              ))}
+            </datalist>
+          )}
         </div>
 
         {lines.length === 0 ? (

@@ -232,6 +232,11 @@ Declaration of the doctor conducting ultrasonography: I, {{radiologist}}, declar
     });
   }
 
+  // --- Referring doctors (billing autocomplete suggestions) ----------------
+  for (const name of ["Dr. Mehta", "Dr. Sharma", "Dr. Reddy", "Dr. Iyer", "Dr. Khan"]) {
+    await prisma.referringDoctor.upsert({ where: { name }, update: {}, create: { name } });
+  }
+
   // --- Patients ------------------------------------------------------------
   const p1 = await prisma.patient.upsert({
     where: { uhid: "HELIA-1001" },

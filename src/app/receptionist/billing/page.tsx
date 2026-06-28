@@ -10,15 +10,20 @@ export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
   const data = await safeQuery(async () => {
-    const [services, recent] = await Promise.all([
+    const [services, recent, doctors] = await Promise.all([
       prisma.service.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
       prisma.bill.findMany({
         orderBy: { createdAt: "desc" },
         take: 6,
         include: { patient: true },
       }),
+      prisma.referringDoctor.findMany({
+        where: { active: true },
+        orderBy: { name: "asc" },
+        select: { name: true },
+      }),
     ]);
-    return { services, recent };
+    return { services, recent, doctors };
   });
 
   return (
@@ -35,6 +40,7 @@ export default async function BillingPage() {
       ) : (
         <>
           <BillingWorkbench
+            referringDoctors={data.doctors.map((d) => d.name)}
             services={data.services.map<ServiceOption>((s) => ({
               id: s.id,
               name: s.name,

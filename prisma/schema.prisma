@@ -76,6 +76,17 @@ model User {
   @@index([role])
 }
 
+// Curated list of referring doctors for billing autocomplete. The bill stores
+// the name as free text, so this is purely a suggestion list.
+model ReferringDoctor {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([active])
+}
+
 // Audit trail of user activity (logins, key actions). Name/role are snapshotted
 // so the log survives even if the user is later deleted.
 model ActivityLog {
