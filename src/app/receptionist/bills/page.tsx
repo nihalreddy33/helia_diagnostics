@@ -13,28 +13,40 @@ import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
-/** Start/end of the given IST date (YYYY-MM-DD), as UTC instants. */
-function istDayRange(dateStr: string): { start: Date; end: Date } | null {
+/** Midnight (start) of the given IST date (YYYY-MM-DD), as a UTC instant. */
+function istDayStart(dateStr: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-  const start = new Date(`${dateStr}T00:00:00+05:30`);
-  if (Number.isNaN(start.getTime())) return null;
-  return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000) };
+  const d = new Date(`${dateStr}T00:00:00+05:30`);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default async function BillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; date?: string }>;
+  searchParams: Promise<{ q?: string; from?: string; to?: string }>;
 }) {
-  const { q, date } = await searchParams;
+  const { q, from, to } = await searchParams;
   const query = (q ?? "").trim();
-  const dateStr = (date ?? "").trim();
-  const range = dateStr ? istDayRange(dateStr) : null;
-  const hasFilters = Boolean(query) || Boolean(range);
+  const fromStr = (from ?? "").trim();
+  const toStr = (to ?? "").trim();
+
+  // Inclusive date range in IST: bills from the start of `from` up to the end
+  // of `to` (i.e. the day after `to` at midnight).
+  const fromInstant = fromStr ? istDayStart(fromStr) : null;
+  const toDayStart = toStr ? istDayStart(toStr) : null;
+  const toInstant = toDayStart ? new Date(toDayStart.getTime() + DAY_MS) : null;
+
+  const hasFilters = Boolean(query) || Boolean(fromInstant) || Boolean(toInstant);
 
   const data = await safeQuery(() => {
     const where: Prisma.BillWhereInput = {};
-    if (range) where.createdAt = { gte: range.start, lt: range.end };
+    if (fromInstant || toInstant) {
+      where.createdAt = {};
+      if (fromInstant) where.createdAt.gte = fromInstant;
+      if (toInstant) where.createdAt.lt = toInstant;
+    }
     if (query) {
       where.OR = [
         { patient: { name: { contains: query, mode: "insensitive" } } },
@@ -73,11 +85,17 @@ export default async function BillsPage({
             className="field-input"
           />
         </div>
-        <div className="min-w-[10rem]">
-          <label htmlFor="date" className="field-label">
-            Date
+        <div className="min-w-[9rem]">
+          <label htmlFor="from" className="field-label">
+            From
           </label>
-          <input id="date" type="date" name="date" defaultValue={dateStr} className="field-input" />
+          <input id="from" type="date" name="from" defaultValue={fromStr} className="field-input" />
+        </div>
+        <div className="min-w-[9rem]">
+          <label htmlFor="to" className="field-label">
+            To
+          </label>
+          <input id="to" type="date" name="to" defaultValue={toStr} className="field-input" />
         </div>
         <div className="flex gap-2">
           <button
