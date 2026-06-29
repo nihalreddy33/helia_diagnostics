@@ -53,7 +53,6 @@ export default async function PrintReportPage({
   }
 
   const modalityLabel = report.template ? MODALITY_LABELS[report.template.modality] : "—";
-  const radiologistName = report.radiologist?.name ?? "—";
 
   // Substitute the {{radiologist}} token in the declaration with the actual
   // reporting doctor (used by e.g. the obstetric PCPNDT declaration).
@@ -123,8 +122,7 @@ export default async function PrintReportPage({
         <section className="mt-16 flex justify-end">
           <div className="text-center">
             <div className="h-px w-56 bg-slate-400" />
-            <p className="mt-2 text-sm font-semibold text-slate-800">{radiologistName}</p>
-            <p className="text-xs text-slate-500">Reported by · Radiologist</p>
+            <p className="mt-2 text-sm font-semibold text-slate-800">Consultant Radiologist</p>
           </div>
         </section>
 
