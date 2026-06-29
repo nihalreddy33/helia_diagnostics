@@ -38,7 +38,6 @@ export default async function LabReportPrintPage({
       where: { id: labReportId },
       include: {
         patient: true,
-        technician: true,
         template: true,
         billItem: { select: { description: true } },
         results: { orderBy: { position: "asc" } },
@@ -117,10 +116,7 @@ export default async function LabReportPrintPage({
         <section className="mt-20 flex justify-end">
           <div className="text-center">
             <div className="h-px w-56 bg-slate-400" />
-            <p className="mt-2 text-sm font-semibold text-slate-800">
-              {report.technician?.name ?? "—"}
-            </p>
-            <p className="text-xs text-slate-500">Lab Technician</p>
+            <p className="mt-2 text-sm font-semibold text-slate-800">Lab In-Charge</p>
           </div>
         </section>
 
