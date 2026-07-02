@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { PrintToolbar } from "@/components/receptionist/PrintToolbar";
+import { CancelBillButton } from "@/components/receptionist/CancelBillButton";
 import {
   formatINR,
   formatDateTimeIST,
@@ -39,6 +40,21 @@ export default async function InvoicePage({
     <div className="print-page">
       <PrintToolbar backHref="/receptionist/billing" backLabel="Back to Billing" />
 
+      {/* Cancellation bar — hidden when printing */}
+      <div className="no-print mx-auto max-w-4xl px-4 py-3">
+        {bill.cancelledAt ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <span className="font-semibold">Bill cancelled</span> on {formatDateTimeIST(bill.cancelledAt)}
+            {bill.cancelReason && <> · {bill.cancelReason}</>}
+            {bill.refundAmount > 0 && <> · refunded {formatINR(bill.refundAmount)}</>}
+          </div>
+        ) : (
+          <div className="flex justify-end">
+            <CancelBillButton billId={bill.id} amountPaid={bill.amountPaid} />
+          </div>
+        )}
+      </div>
+
       <article className="print-sheet">
         <header className="flex items-start justify-between">
           <div className="letterhead">
@@ -51,6 +67,9 @@ export default async function InvoicePage({
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Invoice</p>
             <p className="font-mono text-sm font-semibold text-slate-800">{bill.invoiceNo}</p>
             <p className="mt-1 text-xs text-slate-500">{formatDateTimeIST(bill.createdAt)}</p>
+            {bill.cancelledAt && (
+              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-red-600">Cancelled</p>
+            )}
           </div>
         </header>
 

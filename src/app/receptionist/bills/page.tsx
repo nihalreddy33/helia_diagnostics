@@ -154,14 +154,22 @@ export default async function BillsPage({
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm font-semibold text-slate-800">
+                    <span
+                      className={`font-mono text-sm font-semibold ${b.cancelledAt ? "text-slate-400 line-through" : "text-slate-800"}`}
+                    >
                       {formatINR(b.total)}
                     </span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${PAYMENT_STATUS_STYLES[b.status]}`}
-                    >
-                      {PAYMENT_STATUS_LABELS[b.status]}
-                    </span>
+                    {b.cancelledAt ? (
+                      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200">
+                        Cancelled
+                      </span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${PAYMENT_STATUS_STYLES[b.status]}`}
+                      >
+                        {PAYMENT_STATUS_LABELS[b.status]}
+                      </span>
+                    )}
                   </div>
                 </Link>
               </li>

@@ -37,6 +37,8 @@ export const ACTION_LABELS: Record<string, string> = {
   REPORT_APPROVED: "Approved radiology report",
   LAB_REPORT_APPROVED: "Approved lab report",
   REPORT_DELIVERED: "Handed report to patient",
+  PAYMENT_RECORDED: "Recorded a payment",
+  BILL_CANCELLED: "Cancelled a bill",
   USER_CREATED: "Created user",
   RECORD_DELETED: "Deleted record",
 };

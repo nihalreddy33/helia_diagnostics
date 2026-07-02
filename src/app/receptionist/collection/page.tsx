@@ -38,7 +38,7 @@ export default async function CollectionPage() {
 
   const bills = await safeQuery(() =>
     prisma.bill.findMany({
-      where: { createdAt: { gte: start, lt: end } },
+      where: { createdAt: { gte: start, lt: end }, cancelledAt: null },
       include: { patient: true },
       orderBy: { createdAt: "desc" },
     }),
