@@ -56,13 +56,10 @@ export default async function InvoicePage({
       </div>
 
       <article className="print-sheet">
-        <header className="flex items-start justify-between">
-          <div className="letterhead">
-            <h1 className="text-2xl font-bold tracking-tight text-brand-700">Helia Diagnostics</h1>
-            <p className="mt-1 text-xs tracking-wide text-slate-500">
-              Diagnostic Imaging &amp; Radiology · Helia Diagnostics Center
-            </p>
-          </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="letterhead print-letterhead" src="/letterhead.png" alt="" aria-hidden="true" />
+        <div className="print-body">
+        <header className="flex items-start justify-end">
           <div className="text-right">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Invoice</p>
             <p className="font-mono text-sm font-semibold text-slate-800">{bill.invoiceNo}</p>
@@ -138,12 +135,13 @@ export default async function InvoicePage({
           </dl>
         </section>
 
-        <footer className="mt-16 border-t border-slate-200 pt-4 text-center text-[10px] leading-5 text-slate-400">
+        <footer className="mt-12 pt-4 text-center text-[10px] leading-5 text-slate-400">
           <p>
             {bill.receptionist ? `Billed by ${bill.receptionist.name}. ` : ""}
-            This is a computer-generated invoice from Helia Diagnostics.
+            This is a computer-generated invoice.
           </p>
         </footer>
+        </div>
       </article>
     </div>
   );

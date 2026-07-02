@@ -36,18 +36,37 @@
    clean, border-free report on standard A4 with letterhead spacing.
 --------------------------------------------------------------------------- */
 .print-sheet {
+  position: relative;
   width: 210mm;
   min-height: 297mm;
   margin: 1rem auto;
-  padding: 22mm 20mm;
+  /* Content sits in the white body area of the letterhead: clear of the printed
+     header band (~top) and footer bar + address (~bottom). */
+  padding: 26mm 16mm 30mm;
   background: #ffffff;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
   color: #0f172a;
 }
 
+/* Full-page letterhead image behind the report content. An <img> (not a CSS
+   background) prints reliably by default. */
+.print-letterhead {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 0;
+  pointer-events: none;
+}
+.print-body {
+  position: relative;
+  z-index: 1;
+}
+
 /* Letterhead toggle: when the .letterhead-toggle checkbox is unchecked, hide the
-   clinic letterhead but keep its footprint, leaving blank space for printing on
-   pre-printed letterhead stationery. Pure CSS — applies on screen and in print. */
+   letterhead artwork but keep the content in place, leaving blank space for
+   printing on pre-printed stationery. Pure CSS — applies on screen and in print. */
 .print-page:has(.letterhead-toggle:not(:checked)) .letterhead {
   visibility: hidden;
 }
@@ -74,7 +93,7 @@
     width: auto;
     min-height: auto;
     margin: 0;
-    padding: 18mm 18mm;
+    padding: 26mm 16mm 30mm;
     box-shadow: none;
   }
 }

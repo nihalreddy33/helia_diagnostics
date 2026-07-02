@@ -61,15 +61,10 @@ export default async function LabReportPrintPage({
       <PrintToolbar backHref="/receptionist/print" backLabel="Back to Print Hub" />
 
       <article className="print-sheet">
-        <header className="letterhead text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-brand-700">Helia Diagnostics</h1>
-          <hr className="mx-auto mt-3 w-24 border-t-2 border-brand-600" />
-          <p className="mt-3 text-xs tracking-wide text-slate-500">
-            Pathology &amp; Laboratory · Helia Diagnostics Center
-          </p>
-        </header>
-
-        <section className="mt-10 border-y border-slate-200 py-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="letterhead print-letterhead" src="/letterhead.png" alt="" aria-hidden="true" />
+        <div className="print-body">
+        <section className="border-y border-slate-200 py-6">
           <dl className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3">
             <MetaItem label="UHID" value={report.patient.uhid} />
             <MetaItem label="Patient name" value={report.patient.name} />
@@ -113,19 +108,17 @@ export default async function LabReportPrintPage({
           )}
         </section>
 
-        <section className="mt-20 flex justify-end">
+        <section className="mt-16 flex justify-end">
           <div className="text-center">
             <div className="h-px w-56 bg-slate-400" />
             <p className="mt-2 text-sm font-semibold text-slate-800">Lab In-Charge</p>
           </div>
         </section>
 
-        <footer className="mt-16 border-t border-slate-200 pt-4 text-center text-[10px] leading-5 text-slate-400">
-          <p>
-            This is an electronically generated laboratory report from Helia Diagnostics. Results
-            should be correlated clinically.
-          </p>
+        <footer className="mt-12 pt-4 text-center text-[10px] leading-5 text-slate-400">
+          <p>This is an electronically generated report. Results should be correlated clinically.</p>
         </footer>
+        </div>
       </article>
     </div>
   );
