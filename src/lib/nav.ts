@@ -10,6 +10,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: "/admin/templates", label: "Templates" },
     { href: "/admin/lab-templates", label: "Lab Tests" },
     { href: "/admin/referring-doctors", label: "Doctors" },
+    { href: "/admin/referrals", label: "Referrals" },
     { href: "/admin/activity", label: "Activity" },
     { href: "/admin/records", label: "Records" },
   ],
