@@ -64,6 +64,16 @@
   z-index: 1;
 }
 
+/* Responsive A4 wrapper (patient-facing share page). The inner sheet is a fixed
+   A4 width scaled down by JS to fit the viewport; the outer clips the overflow. */
+.a4-frame {
+  width: 100%;
+  overflow: hidden;
+}
+.a4-inner {
+  margin: 0 auto;
+}
+
 /* Letterhead toggle: when the .letterhead-toggle checkbox is unchecked, hide the
    letterhead artwork but keep the content in place, leaving blank space for
    printing on pre-printed stationery. Pure CSS — applies on screen and in print. */
@@ -95,5 +105,14 @@
     margin: 0;
     padding: 26mm 16mm 30mm;
     box-shadow: none;
+  }
+  /* Undo the on-screen scaling so the share page prints at true A4. */
+  .a4-frame {
+    height: auto !important;
+    overflow: visible;
+  }
+  .a4-inner {
+    width: auto !important;
+    transform: none !important;
   }
 }

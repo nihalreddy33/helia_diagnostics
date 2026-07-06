@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { readShareToken } from "@/lib/share";
 import { PrintButton } from "@/components/receptionist/PrintButton";
+import { A4Frame } from "@/components/A4Frame";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import {
   MODALITY_LABELS,
@@ -86,7 +87,7 @@ export default async function PublicSharePage({
   if (record.kind !== "bill" && record.data.status !== "APPROVED") notFound();
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-[840px]">
       <div>
         <div className="mb-4 flex items-center justify-between gap-3 no-print">
           <div>
@@ -96,11 +97,18 @@ export default async function PublicSharePage({
           <PrintButton />
         </div>
 
-        <article className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-8 print:shadow-none print:ring-0">
-          {record.kind === "report" && <ReportView r={record.data} />}
-          {record.kind === "lab" && <LabView r={record.data} />}
-          {record.kind === "bill" && <BillView b={record.data} />}
-        </article>
+        {/* Official Helia letterhead sheet, scaled to fit the screen; prints A4. */}
+        <A4Frame>
+          <article className="print-sheet">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="letterhead print-letterhead" src="/letterhead.png" alt="" aria-hidden="true" />
+            <div className="print-body">
+              {record.kind === "report" && <ReportView r={record.data} />}
+              {record.kind === "lab" && <LabView r={record.data} />}
+              {record.kind === "bill" && <BillView b={record.data} />}
+            </div>
+          </article>
+        </A4Frame>
 
         <p className="mt-4 text-center text-xs text-slate-400 no-print">
           This is a confidential medical document shared by Helia Diagnostics.

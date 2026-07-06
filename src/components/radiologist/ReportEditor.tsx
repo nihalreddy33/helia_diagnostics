@@ -23,13 +23,16 @@ export function ReportEditor({
   patient: WorklistPatient;
   templates: WorklistTemplate[];
 }) {
-  const draft = patient.draft;
+  const report = patient.report;
+  // When the latest report is already approved, the editor is in "amend" mode:
+  // edits update the approved report in place (and are logged as an amendment).
+  const isAmend = report?.status === "APPROVED";
 
   // Controlled editor state. Keyed by patient.id below so it resets per patient.
-  const [templateId, setTemplateId] = useState<string>(draft?.templateId ?? "");
-  const [findings, setFindings] = useState<string>(draft?.findings ?? "");
-  const [impression, setImpression] = useState<string>(draft?.impression ?? "");
-  const [footer, setFooter] = useState<string>(draft?.footer ?? "");
+  const [templateId, setTemplateId] = useState<string>(report?.templateId ?? "");
+  const [findings, setFindings] = useState<string>(report?.findings ?? "");
+  const [impression, setImpression] = useState<string>(report?.impression ?? "");
+  const [footer, setFooter] = useState<string>(report?.footer ?? "");
 
   const [state, formAction] = useActionState<State, FormData>(saveAction, null);
 
@@ -47,7 +50,7 @@ export function ReportEditor({
 
   // After a successful save that is NOT an approval, keep editing in place but
   // remember the freshly-created report id so subsequent saves update it.
-  const [reportId, setReportId] = useState<string>(draft?.id ?? "");
+  const [reportId, setReportId] = useState<string>(report?.id ?? "");
   useEffect(() => {
     if (state?.ok && state.data.status === "DRAFT") {
       setReportId(state.data.id);
@@ -71,9 +74,16 @@ export function ReportEditor({
               {patient.gender}
             </p>
           </div>
-          {draft && <StatusBadge status={draft.status} />}
+          {report && <StatusBadge status={report.status} />}
         </div>
       </div>
+
+      {isAmend && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span className="font-semibold">Amending an approved report.</span> Changes update the
+          copy patients and reception see, and are recorded in the activity log.
+        </div>
+      )}
 
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="patientId" value={patient.id} />
@@ -166,29 +176,44 @@ export function ReportEditor({
             role="status"
             className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
           >
-            {approved
-              ? "Report approved. It will drop off the worklist."
-              : "Draft saved. You can keep editing or approve when ready."}
+            {isAmend
+              ? "Report updated. The revised copy is now live."
+              : approved
+                ? "Report approved. It will drop off the worklist."
+                : "Draft saved. You can keep editing or approve when ready."}
           </div>
         )}
 
         <div className="flex flex-wrap items-center gap-3 pt-1">
-          <SubmitButton
-            variant="secondary"
-            name="intent"
-            value="DRAFT"
-            pendingLabel="Saving…"
-          >
-            Save draft
-          </SubmitButton>
-          <SubmitButton
-            variant="success"
-            name="intent"
-            value="APPROVED"
-            pendingLabel="Approving…"
-          >
-            Approve report
-          </SubmitButton>
+          {isAmend ? (
+            <SubmitButton
+              variant="success"
+              name="intent"
+              value="APPROVED"
+              pendingLabel="Saving…"
+            >
+              Save changes
+            </SubmitButton>
+          ) : (
+            <>
+              <SubmitButton
+                variant="secondary"
+                name="intent"
+                value="DRAFT"
+                pendingLabel="Saving…"
+              >
+                Save draft
+              </SubmitButton>
+              <SubmitButton
+                variant="success"
+                name="intent"
+                value="APPROVED"
+                pendingLabel="Approving…"
+              >
+                Approve report
+              </SubmitButton>
+            </>
+          )}
         </div>
       </form>
     </div>

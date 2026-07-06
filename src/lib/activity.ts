@@ -35,6 +35,7 @@ export const ACTION_LABELS: Record<string, string> = {
   PATIENT_REGISTERED: "Registered patient",
   BILL_CREATED: "Raised bill",
   REPORT_APPROVED: "Approved radiology report",
+  REPORT_AMENDED: "Amended approved report",
   LAB_REPORT_APPROVED: "Approved lab report",
   REPORT_DELIVERED: "Handed report to patient",
   WHATSAPP_SENT: "Sent on WhatsApp",

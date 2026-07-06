@@ -25,6 +25,7 @@ export default async function RadiologistPage() {
               impression: true,
               footer: true,
               templateId: true,
+              approvedAt: true,
               billItem: { select: { description: true } },
             },
           },
@@ -54,33 +55,37 @@ export default async function RadiologistPage() {
     );
   }
 
-  // Worklist = patients awaiting transcription: no report yet, or latest is a DRAFT.
-  const worklist: WorklistPatient[] = data.patients
-    .filter((p) => {
-      const latest = p.reports[0];
-      return !latest || latest.status !== "APPROVED";
-    })
-    .map((p) => {
-      const draft = p.reports[0] && p.reports[0].status === "DRAFT" ? p.reports[0] : null;
-      return {
-        id: p.id,
-        uhid: p.uhid,
-        name: p.name,
-        age: p.age,
-        gender: p.gender,
-        orderedService: p.reports[0]?.billItem?.description ?? null,
-        draft: draft
-          ? {
-              id: draft.id,
-              status: draft.status,
-              findings: draft.findings,
-              impression: draft.impression,
-              footer: draft.footer,
-              templateId: draft.templateId ?? null,
-            }
-          : null,
-      };
-    });
+  const toPatient = (p: (typeof data.patients)[number]): WorklistPatient => {
+    const latest = p.reports[0] ?? null;
+    return {
+      id: p.id,
+      uhid: p.uhid,
+      name: p.name,
+      age: p.age,
+      gender: p.gender,
+      orderedService: latest?.billItem?.description ?? null,
+      report: latest
+        ? {
+            id: latest.id,
+            status: latest.status,
+            findings: latest.findings,
+            impression: latest.impression,
+            footer: latest.footer,
+            templateId: latest.templateId ?? null,
+            approvedAt: latest.approvedAt ? latest.approvedAt.toISOString() : null,
+          }
+        : null,
+    };
+  };
+
+  // Pending = awaiting transcription (no report yet or latest is a DRAFT).
+  // Completed = latest report is APPROVED (viewable + amendable).
+  const pending: WorklistPatient[] = data.patients
+    .filter((p) => !p.reports[0] || p.reports[0].status !== "APPROVED")
+    .map(toPatient);
+  const completed: WorklistPatient[] = data.patients
+    .filter((p) => p.reports[0]?.status === "APPROVED")
+    .map(toPatient);
 
   const templates: WorklistTemplate[] = data.templates.map((t) => ({
     id: t.id,
@@ -94,7 +99,7 @@ export default async function RadiologistPage() {
   return (
     <div className="space-y-6">
       <Header />
-      <RadiologistWorkspace worklist={worklist} templates={templates} />
+      <RadiologistWorkspace pending={pending} completed={completed} templates={templates} />
     </div>
   );
 }
