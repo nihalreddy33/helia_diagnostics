@@ -7,6 +7,18 @@ import type { ActionResult } from "@/lib/types";
 
 const GENDERS = ["Male", "Female", "Other"] as const;
 
+/**
+ * Keep only digits, drop a leading +91 country code or 0, and cap at 10 digits —
+ * so the field can never hold more than a 10-digit Indian mobile. Mirrors the
+ * server-side normalizeMobile so client and server agree.
+ */
+function sanitizeMobile(raw: string): string {
+  let d = raw.replace(/\D/g, "");
+  if (d.length > 10 && d.startsWith("91")) d = d.slice(2);
+  else if (d.length > 10 && d.startsWith("0")) d = d.slice(1);
+  return d.slice(0, 10);
+}
+
 type State = (ActionResult<{ id: string; uhid: string }> & { key: number }) | null;
 
 async function action(prev: State, fd: FormData): Promise<State> {
@@ -68,10 +80,13 @@ export function PatientRegistrationForm() {
             inputMode="numeric"
             required
             autoComplete="off"
-            maxLength={14}
-            pattern="(\+?91[\s-]?)?[6-9]\d{9}"
-            title="Enter a valid 10-digit mobile number"
+            maxLength={10}
+            pattern="[6-9][0-9]{9}"
+            title="Enter a valid 10-digit mobile number (starts with 6-9)"
             placeholder="e.g. 9876543210"
+            onChange={(e) => {
+              e.currentTarget.value = sanitizeMobile(e.currentTarget.value);
+            }}
             className="field-input"
           />
         </div>
