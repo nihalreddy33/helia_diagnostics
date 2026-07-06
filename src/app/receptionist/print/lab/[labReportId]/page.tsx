@@ -58,7 +58,20 @@ export default async function LabReportPrintPage({
 
   return (
     <div className="print-page">
-      <PrintToolbar backHref="/receptionist/print" backLabel="Back to Print Hub" />
+      <PrintToolbar
+        backHref="/receptionist/print"
+        backLabel="Back to Print Hub"
+        share={
+          report.status === "APPROVED"
+            ? {
+                kind: "lab",
+                id: report.id,
+                sentAt: report.whatsappSentAt?.toISOString() ?? null,
+                sentCount: report.whatsappSentCount,
+              }
+            : undefined
+        }
+      />
 
       <article className="print-sheet">
         {/* eslint-disable-next-line @next/next/no-img-element */}

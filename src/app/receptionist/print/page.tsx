@@ -18,6 +18,7 @@ type PrintItem = {
   approvedAt: Date | null;
   deliveredAt: Date | null;
   deliveredBy: string | null;
+  whatsappSentAt: Date | null;
   monthYear: string;
   href: string;
 };
@@ -104,6 +105,7 @@ export default async function PrintHubPage({
         approvedAt: r.approvedAt,
         deliveredAt: r.deliveredAt,
         deliveredBy: r.deliveredBy?.name ?? null,
+        whatsappSentAt: r.whatsappSentAt,
         monthYear: r.createdMonthYear,
         href: `/receptionist/print/${r.id}`,
       })),
@@ -116,6 +118,7 @@ export default async function PrintHubPage({
         approvedAt: r.approvedAt,
         deliveredAt: r.deliveredAt,
         deliveredBy: r.deliveredBy?.name ?? null,
+        whatsappSentAt: r.whatsappSentAt,
         monthYear: r.createdMonthYear,
         href: `/receptionist/print/lab/${r.id}`,
       })),
@@ -254,6 +257,14 @@ export default async function PrintHubPage({
                       >
                         {it.kind}
                       </span>
+                      {it.whatsappSentAt && (
+                        <span
+                          title="Sent to patient on WhatsApp"
+                          className="inline-flex shrink-0 items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
+                        >
+                          ✓ WhatsApp
+                        </span>
+                      )}
                     </Link>
                     <DeliveryToggle
                       kind={it.kind === "Lab" ? "lab" : "report"}

@@ -151,6 +151,10 @@ model Report {
   deliveredById String?   @db.Uuid
   deliveredBy   User?     @relation("ReportsDelivered", fields: [deliveredById], references: [id], onDelete: SetNull)
 
+  // When this report was last sent to the patient over WhatsApp (and how often).
+  whatsappSentAt    DateTime?
+  whatsappSentCount Int       @default(0)
+
   patientId String  @db.Uuid
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -213,6 +217,10 @@ model Bill {
   cancelledAt   DateTime?
   cancelReason  String    @default("")
   refundAmount  Int       @default(0) // paise refunded on cancellation
+
+  // When this invoice was last sent to the patient over WhatsApp (and how often).
+  whatsappSentAt    DateTime?
+  whatsappSentCount Int       @default(0)
 
   createdMonthYear String
   createdAt        DateTime @default(now())
@@ -286,6 +294,10 @@ model LabReport {
   deliveredAt      DateTime?
   deliveredById    String?   @db.Uuid
   deliveredBy      User?     @relation("LabReportsDelivered", fields: [deliveredById], references: [id], onDelete: SetNull)
+
+  // When this report was last sent to the patient over WhatsApp (and how often).
+  whatsappSentAt    DateTime?
+  whatsappSentCount Int       @default(0)
 
   patientId String  @db.Uuid
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)

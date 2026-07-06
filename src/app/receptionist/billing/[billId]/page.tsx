@@ -38,7 +38,20 @@ export default async function InvoicePage({
 
   return (
     <div className="print-page">
-      <PrintToolbar backHref="/receptionist/billing" backLabel="Back to Billing" />
+      <PrintToolbar
+        backHref="/receptionist/billing"
+        backLabel="Back to Billing"
+        share={
+          bill.cancelledAt
+            ? undefined
+            : {
+                kind: "bill",
+                id: bill.id,
+                sentAt: bill.whatsappSentAt?.toISOString() ?? null,
+                sentCount: bill.whatsappSentCount,
+              }
+        }
+      />
 
       {/* Cancellation bar — hidden when printing */}
       <div className="no-print mx-auto max-w-4xl px-4 py-3">

@@ -62,7 +62,20 @@ export default async function PrintReportPage({
 
   return (
     <div className="print-page">
-      <PrintToolbar backHref="/receptionist/print" backLabel="Back to Print Hub" />
+      <PrintToolbar
+        backHref="/receptionist/print"
+        backLabel="Back to Print Hub"
+        share={
+          report.status === "APPROVED"
+            ? {
+                kind: "report",
+                id: report.id,
+                sentAt: report.whatsappSentAt?.toISOString() ?? null,
+                sentCount: report.whatsappSentCount,
+              }
+            : undefined
+        }
+      />
 
       {/* A4 sheet with the Helia letterhead as a full-page background */}
       <article className="print-sheet">

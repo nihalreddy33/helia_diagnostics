@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "./PrintButton";
+import { SendWhatsAppButton } from "./SendWhatsAppButton";
+import type { ShareKind } from "@/lib/share";
 
 /**
  * Sticky toolbar for print pages: back link, a letterhead on/off toggle, and
@@ -10,9 +12,11 @@ import { PrintButton } from "./PrintButton";
 export function PrintToolbar({
   backHref,
   backLabel,
+  share,
 }: {
   backHref: string;
   backLabel: string;
+  share?: { kind: ShareKind; id: string; sentAt?: string | null; sentCount?: number };
 }) {
   return (
     <div className="no-print sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -32,6 +36,14 @@ export function PrintToolbar({
             />
             Letterhead
           </label>
+          {share && (
+            <SendWhatsAppButton
+              kind={share.kind}
+              id={share.id}
+              sentAt={share.sentAt}
+              sentCount={share.sentCount}
+            />
+          )}
           <PrintButton />
         </div>
       </div>
