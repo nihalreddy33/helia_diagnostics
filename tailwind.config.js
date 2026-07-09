@@ -8,37 +8,39 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Helia brand — indigo-violet from the "HELIA" wordmark and H-bar.
+        // Helia brand — deep indigo-violet from the "HELIA" wordmark and H-bars.
         brand: {
-          50: "#eeedf8",
-          100: "#dad8f0",
-          200: "#b8b4e2",
-          300: "#9189d1",
-          400: "#6a60bd",
-          500: "#4f45a6",
-          600: "#3f3a93",
-          700: "#332e76",
-          800: "#2a265e",
-          900: "#221f4b",
+          50: "#eeecfa",
+          100: "#dcd7f5",
+          200: "#bcb2ea",
+          300: "#9885dd",
+          400: "#7458cf",
+          500: "#5639bd",
+          600: "#4529a6",
+          700: "#351f83", // wordmark / headings
+          800: "#2b1a69",
+          900: "#241656",
         },
-        // Green from the medical cross.
+        // Leaf green from the medical cross.
         accent: {
-          50: "#eef8ea",
-          100: "#d6efcc",
-          200: "#b4e29f",
-          300: "#8ed46f",
-          400: "#6fc44e",
-          500: "#5cb947",
-          600: "#4a9c39",
-          700: "#3b7c2e",
-          800: "#316427",
-          900: "#294f22",
+          50: "#edf8e7",
+          100: "#d5efc6",
+          200: "#b3e298",
+          300: "#8bd465",
+          400: "#67c53f",
+          500: "#52b52c", // cross green
+          600: "#439722",
+          700: "#367a1e",
+          800: "#2e6319",
+          900: "#275117",
         },
         // Amber from the lab droplet.
         droplet: {
-          400: "#f5bd5d",
-          500: "#f0a93a",
-          600: "#d98f25",
+          300: "#fad07f",
+          400: "#f8bd57",
+          500: "#f5a623", // droplet
+          600: "#dc8b14",
+          700: "#b06e10",
         },
       },
       fontFamily: {
