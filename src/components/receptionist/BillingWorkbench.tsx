@@ -51,6 +51,7 @@ export function BillingWorkbench({
   const [lines, setLines] = useState<Line[]>([]);
   const [serviceQuery, setServiceQuery] = useState("");
   const [discount, setDiscount] = useState("");
+  const [discountMode, setDiscountMode] = useState<"amount" | "percent">("amount");
   const [amountPaid, setAmountPaid] = useState("");
   const [method, setMethod] = useState("CASH");
 
@@ -75,7 +76,15 @@ export function BillingWorkbench({
     () => lines.reduce((sum, l) => sum + l.service.price * l.quantity, 0),
     [lines],
   );
-  const discountPaise = Math.max(0, rupeesToPaise(discount));
+  // Discount can be entered as a flat ₹ amount or a % of the subtotal; either
+  // way it resolves to a rupee amount (paise), capped at the subtotal.
+  const discountPct =
+    discountMode === "percent" ? Math.min(100, Math.max(0, Number(discount) || 0)) : 0;
+  const rawDiscountPaise =
+    discountMode === "percent"
+      ? Math.round((subtotal * discountPct) / 100)
+      : Math.max(0, rupeesToPaise(discount));
+  const discountPaise = Math.min(rawDiscountPaise, subtotal);
   const total = Math.max(0, subtotal - discountPaise);
   const paidPaise = Math.max(0, rupeesToPaise(amountPaid));
   const balance = Math.max(0, total - paidPaise);
@@ -217,20 +226,52 @@ export function BillingWorkbench({
 
         <div className="space-y-1 border-t border-slate-100 pt-3 text-sm">
           <Row label="Subtotal" value={formatINR(subtotal)} />
-          <div className="flex items-center justify-between">
-            <label htmlFor="discount" className="text-slate-500">Discount (₹)</label>
-            <input
-              id="discount"
-              name="discount"
-              type="number"
-              min={0}
-              step="0.01"
-              value={discount}
-              onChange={(e) => setDiscount(e.target.value)}
-              className="w-24 rounded border border-slate-300 px-2 py-1 text-right text-sm"
-              placeholder="0"
-            />
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="discount" className="text-slate-500">Discount</label>
+            <div className="flex items-center gap-1.5">
+              <div className="flex overflow-hidden rounded-md border border-slate-300 text-xs font-semibold">
+                {(["amount", "percent"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    aria-pressed={discountMode === m}
+                    onClick={() => {
+                      setDiscountMode(m);
+                      setDiscount(""); // the number means different things per mode
+                    }}
+                    className={`px-2 py-1 transition ${
+                      discountMode === m
+                        ? "bg-brand-600 text-white"
+                        : "bg-white text-slate-500 hover:bg-slate-50"
+                    }`}
+                  >
+                    {m === "amount" ? "₹" : "%"}
+                  </button>
+                ))}
+              </div>
+              <input
+                id="discount"
+                type="number"
+                min={0}
+                max={discountMode === "percent" ? 100 : undefined}
+                step={discountMode === "percent" ? 1 : 0.01}
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+                className="w-20 rounded border border-slate-300 px-2 py-1 text-right text-sm"
+                placeholder="0"
+                aria-label={discountMode === "percent" ? "Discount percentage" : "Discount amount in rupees"}
+              />
+            </div>
           </div>
+          {discountPaise > 0 && (
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span aria-hidden />
+              <span>
+                − {formatINR(discountPaise)}
+                {discountMode === "percent" ? ` (${discountPct}%)` : ""}
+              </span>
+            </div>
+          )}
           <Row label="Total" value={formatINR(total)} strong />
         </div>
 
@@ -274,6 +315,8 @@ export function BillingWorkbench({
         {/* Hidden fields consumed by the server action */}
         <input type="hidden" name="patientId" value={patient?.id ?? ""} />
         <input type="hidden" name="items" value={itemsJson} />
+        {/* Discount is always submitted as a rupee amount, computed from ₹ or %. */}
+        <input type="hidden" name="discount" value={(discountPaise / 100).toFixed(2)} />
 
         {state && !state.ok && (
           <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
