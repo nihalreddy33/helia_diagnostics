@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { saveReport } from "@/app/actions/reports";
+import { draftReport } from "@/app/actions/ai";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { StatusBadge } from "@/components/ui/Badge";
 import { MODALITY_LABELS } from "@/lib/types";
@@ -35,6 +36,37 @@ export function ReportEditor({
   const [footer, setFooter] = useState<string>(report?.footer ?? "");
 
   const [state, formAction] = useActionState<State, FormData>(saveAction, null);
+
+  // --- AI drafting -----------------------------------------------------------
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  async function onDraftWithAI() {
+    setAiError(null);
+    const tpl = templates.find((t) => t.id === templateId);
+    const study = tpl?.title ?? patient.orderedService ?? "Radiology study";
+    const modality = tpl ? MODALITY_LABELS[tpl.modality] : "—";
+    setAiLoading(true);
+    try {
+      const result = await draftReport({
+        notes: findings,
+        study,
+        modality,
+        age: patient.age,
+        gender: patient.gender,
+      });
+      if (result.ok) {
+        setFindings(result.data.findings);
+        setImpression(result.data.impression);
+      } else {
+        setAiError(result.error);
+      }
+    } catch {
+      setAiError("Could not reach the AI service. Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   // Choosing a template immediately injects its defaults into the textareas.
   // The patient profile is rendered separately and never touched by this.
@@ -114,9 +146,21 @@ export function ReportEditor({
         </div>
 
         <div>
-          <label htmlFor="findings" className="field-label">
-            Findings
-          </label>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label htmlFor="findings" className="field-label !mb-0">
+              Findings
+            </label>
+            <button
+              type="button"
+              onClick={onDraftWithAI}
+              disabled={aiLoading}
+              title="Rewrite your notes into a clean report and draft an impression. You can edit the result before approving."
+              className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 ring-1 ring-inset ring-brand-200 transition hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span aria-hidden>{aiLoading ? "⏳" : "✨"}</span>
+              {aiLoading ? "Drafting…" : "Draft with AI"}
+            </button>
+          </div>
           <textarea
             id="findings"
             name="findings"
@@ -124,8 +168,16 @@ export function ReportEditor({
             onChange={(e) => setFindings(e.target.value)}
             rows={8}
             className="field-textarea"
-            placeholder="Describe the radiological findings…"
+            placeholder="Type rough findings, then tap “Draft with AI” to expand them…"
           />
+          {aiError && (
+            <p role="alert" className="mt-1 text-xs text-red-600">
+              {aiError}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-slate-500">
+            AI cleans up your notes and drafts an impression. Always review before approving.
+          </p>
         </div>
 
         <div>
