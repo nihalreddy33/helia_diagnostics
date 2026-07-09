@@ -8,6 +8,15 @@ import type { WorklistPatient, WorklistTemplate } from "./types";
 
 type Tab = "pending" | "completed";
 
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
+}
+
 export function RadiologistWorkspace({
   pending,
   completed,
@@ -21,6 +30,9 @@ export function RadiologistWorkspace({
   const list = tab === "pending" ? pending : completed;
 
   const [selectedId, setSelectedId] = useState<string | null>(list[0]?.id ?? null);
+  // On phones we show either the list or the editor (master–detail); on lg+
+  // both are always visible side by side.
+  const [showDetail, setShowDetail] = useState(false);
 
   // Keep the selection valid as lists change (e.g. after a report is approved
   // and revalidation moves that patient from pending to completed).
@@ -39,14 +51,24 @@ export function RadiologistWorkspace({
     [list, selectedId],
   );
 
+  function selectTab(next: Tab) {
+    setTab(next);
+    setShowDetail(false); // back to the list when switching tabs on mobile
+  }
+
+  function selectPatient(id: string) {
+    setSelectedId(id);
+    setShowDetail(true); // reveal the editor on mobile
+  }
+
   return (
     <div className="space-y-4">
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-sm font-medium">
-        <TabButton active={tab === "pending"} onClick={() => setTab("pending")}>
+        <TabButton active={tab === "pending"} onClick={() => selectTab("pending")}>
           Pending{pending.length > 0 && <Count>{pending.length}</Count>}
         </TabButton>
-        <TabButton active={tab === "completed"} onClick={() => setTab("completed")}>
+        <TabButton active={tab === "completed"} onClick={() => selectTab("completed")}>
           Completed{completed.length > 0 && <Count>{completed.length}</Count>}
         </TabButton>
       </div>
@@ -66,9 +88,9 @@ export function RadiologistWorkspace({
           />
         )
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
-          {/* LEFT: queue for the active tab */}
-          <aside className="space-y-3">
+        <div className="lg:grid lg:grid-cols-[20rem_1fr] lg:gap-6">
+          {/* LEFT: queue (hidden on mobile once a patient is opened) */}
+          <aside className={`space-y-3 ${showDetail ? "hidden lg:block" : "block"}`}>
             <div className="flex items-baseline justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                 {tab === "pending" ? "Queue" : "Approved"}
@@ -80,11 +102,12 @@ export function RadiologistWorkspace({
             <ol className="space-y-2">
               {list.map((patient, index) => {
                 const active = patient.id === selectedId;
+                const stamp = patient.report?.lastEditedAt ?? patient.report?.approvedAt ?? null;
                 return (
                   <li key={patient.id}>
                     <button
                       type="button"
-                      onClick={() => setSelectedId(patient.id)}
+                      onClick={() => selectPatient(patient.id)}
                       aria-current={active ? "true" : undefined}
                       className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 ${
                         active
@@ -114,6 +137,11 @@ export function RadiologistWorkspace({
                             {patient.orderedService}
                           </span>
                         )}
+                        {tab === "completed" && stamp && (
+                          <span className="mt-1 block text-[11px] text-slate-400">
+                            Edited {shortDate(stamp)}
+                          </span>
+                        )}
                       </span>
                     </button>
                   </li>
@@ -122,10 +150,24 @@ export function RadiologistWorkspace({
             </ol>
           </aside>
 
-          {/* RIGHT: interactive editor (keyed so state resets per patient) */}
-          <section className="card p-6">
+          {/* RIGHT: editor (hidden on mobile until a patient is opened) */}
+          <section
+            className={`card mt-4 p-4 sm:p-6 lg:mt-0 ${
+              showDetail ? "block" : "hidden lg:block"
+            }`}
+          >
             {selected ? (
-              <ReportEditor key={selected.id} patient={selected} templates={templates} />
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowDetail(false)}
+                  className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-slate-600 lg:hidden"
+                >
+                  <span aria-hidden>‹</span> Back to {tab === "pending" ? "queue" : "list"}
+                </button>
+                {/* Key by patient id so editor state resets per patient. */}
+                <ReportEditor key={selected.id} patient={selected} templates={templates} />
+              </>
             ) : (
               <EmptyState
                 title="Select a patient"

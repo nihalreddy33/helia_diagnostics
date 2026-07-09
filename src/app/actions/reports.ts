@@ -68,7 +68,15 @@ export async function saveReport(
 
         saved = await prisma.report.update({
           where: { id: reportId },
-          data: { templateId, findings, impression, footer, radiologistId: user.id, ...statusFields },
+          data: {
+            templateId,
+            findings,
+            impression,
+            footer,
+            radiologistId: user.id,
+            lastEditedAt: new Date(),
+            ...statusFields,
+          },
           select: { id: true, status: true },
         });
       } else {
@@ -85,6 +93,7 @@ export async function saveReport(
             footer,
             radiologistId: user.id,
             createdMonthYear: currentMonthYear(),
+            lastEditedAt: new Date(),
             ...statusFields,
           },
           select: { id: true, status: true },

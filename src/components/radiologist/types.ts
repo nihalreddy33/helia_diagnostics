@@ -10,6 +10,8 @@ export type WorklistReport = {
   templateId: string | null;
   /** ISO timestamp of approval, present once approved. */
   approvedAt: string | null;
+  /** ISO timestamp of the last content edit (draft, approval, or amendment). */
+  lastEditedAt: string | null;
 };
 
 /** Plain, serializable patient row for the radiologist queue. */

@@ -5,7 +5,7 @@ import { saveReport } from "@/app/actions/reports";
 import { draftReport } from "@/app/actions/ai";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { StatusBadge } from "@/components/ui/Badge";
-import { MODALITY_LABELS } from "@/lib/types";
+import { MODALITY_LABELS, formatDateTimeIST } from "@/lib/types";
 import type { ActionResult, ReportStatus } from "@/lib/types";
 import type { WorklistPatient, WorklistTemplate } from "./types";
 
@@ -108,6 +108,11 @@ export function ReportEditor({
           </div>
           {report && <StatusBadge status={report.status} />}
         </div>
+        {report?.lastEditedAt && (
+          <p className="mt-2 text-xs text-slate-500">
+            Last edited {formatDateTimeIST(new Date(report.lastEditedAt))}
+          </p>
+        )}
       </div>
 
       {isAmend && (

@@ -26,6 +26,7 @@ export default async function RadiologistPage() {
               footer: true,
               templateId: true,
               approvedAt: true,
+              lastEditedAt: true,
               billItem: { select: { description: true } },
             },
           },
@@ -73,6 +74,7 @@ export default async function RadiologistPage() {
             footer: latest.footer,
             templateId: latest.templateId ?? null,
             approvedAt: latest.approvedAt ? latest.approvedAt.toISOString() : null,
+            lastEditedAt: latest.lastEditedAt ? latest.lastEditedAt.toISOString() : null,
           }
         : null,
     };

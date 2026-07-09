@@ -146,6 +146,9 @@ model Report {
 
   createdAt  DateTime  @default(now())
   approvedAt DateTime?
+  // When the report content was last edited by a radiologist (draft, approval,
+  // or amendment). Distinct from approvedAt, which is frozen at first approval.
+  lastEditedAt DateTime?
   // When the printed report was handed to the patient, and by whom.
   deliveredAt   DateTime?
   deliveredById String?   @db.Uuid
