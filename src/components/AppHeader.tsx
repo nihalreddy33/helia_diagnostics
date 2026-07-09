@@ -23,7 +23,7 @@ export async function AppHeader() {
 
         <nav className="flex items-center gap-1" aria-label="Primary">
           {links.map((l) => (
-            <NavLink key={l.href} href={l.href}>
+            <NavLink key={l.href} href={l.href} exact={l.exact}>
               {l.label}
             </NavLink>
           ))}

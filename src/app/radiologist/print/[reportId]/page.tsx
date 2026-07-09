@@ -7,7 +7,7 @@ import { RadiologyReportSheet } from "@/components/print/RadiologyReportSheet";
 
 export const dynamic = "force-dynamic";
 
-export default async function PrintReportPage({
+export default async function RadiologistPrintReportPage({
   params,
 }: {
   params: Promise<{ reportId: string }>;
@@ -32,20 +32,7 @@ export default async function PrintReportPage({
 
   return (
     <div className="print-page">
-      <PrintToolbar
-        backHref="/receptionist/print"
-        backLabel="Back to Print Hub"
-        share={
-          report.status === "APPROVED"
-            ? {
-                kind: "report",
-                id: report.id,
-                sentAt: report.whatsappSentAt?.toISOString() ?? null,
-                sentCount: report.whatsappSentCount,
-              }
-            : undefined
-        }
-      />
+      <PrintToolbar backHref="/radiologist/print" backLabel="Back to Print Hub" />
       <RadiologyReportSheet report={report} />
     </div>
   );

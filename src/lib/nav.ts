@@ -1,6 +1,12 @@
 import type { Role } from "@/lib/types";
 
-export type NavItem = { href: string; label: string };
+export type NavItem = {
+  href: string;
+  label: string;
+  /** Match this link's active state exactly (for section-root links whose href
+   *  is a prefix of sibling routes, e.g. "/radiologist" vs "/radiologist/print"). */
+  exact?: boolean;
+};
 
 /** Destinations each role sees in the primary nav. */
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
@@ -15,14 +21,17 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: "/admin/records", label: "Records" },
   ],
   RECEPTIONIST: [
-    { href: "/receptionist", label: "Register" },
+    { href: "/receptionist", label: "Register", exact: true },
     { href: "/receptionist/billing", label: "Billing" },
     { href: "/receptionist/bills", label: "Bills" },
     { href: "/receptionist/dues", label: "Dues" },
     { href: "/receptionist/collection", label: "Collection" },
     { href: "/receptionist/print", label: "Print Hub" },
   ],
-  RADIOLOGIST: [{ href: "/radiologist", label: "Worklist" }],
+  RADIOLOGIST: [
+    { href: "/radiologist", label: "Worklist", exact: true },
+    { href: "/radiologist/print", label: "Print Hub" },
+  ],
   LAB_TECHNICIAN: [{ href: "/lab", label: "Worklist" }],
 };
 
