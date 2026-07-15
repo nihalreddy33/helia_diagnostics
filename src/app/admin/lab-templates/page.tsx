@@ -3,17 +3,34 @@ import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { EmptyState } from "@/components/EmptyState";
 import { Disclosure } from "@/components/admin/Disclosure";
-import { LabTemplateForm } from "@/components/admin/LabTemplateForm";
+import { LabTemplateForm, type ServiceLink } from "@/components/admin/LabTemplateForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function LabTemplatesPage() {
-  const templates = await safeQuery(() =>
-    prisma.labTemplate.findMany({
-      orderBy: { title: "asc" },
-      include: { parameters: { orderBy: { position: "asc" } } },
-    }),
-  );
+  const data = await safeQuery(async () => {
+    const [templates, labServices] = await Promise.all([
+      prisma.labTemplate.findMany({
+        orderBy: { title: "asc" },
+        include: { parameters: { orderBy: { position: "asc" } } },
+      }),
+      prisma.service.findMany({
+        where: { department: "LAB" },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true, labTemplateId: true, labTemplate: { select: { title: true } } },
+      }),
+    ]);
+    return { templates, labServices };
+  });
+
+  const templates = data?.templates ?? null;
+  const services: ServiceLink[] =
+    data?.labServices.map((s) => ({
+      id: s.id,
+      name: s.name,
+      labTemplateId: s.labTemplateId,
+      labTemplateTitle: s.labTemplate?.title ?? null,
+    })) ?? [];
 
   return (
     <div className="space-y-6">
@@ -27,7 +44,7 @@ export default async function LabTemplatesPage() {
       <section className="card p-6">
         <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">New lab test</h2>
         <div className="mt-3">
-          <LabTemplateForm />
+          <LabTemplateForm services={services} />
         </div>
       </section>
 
@@ -60,6 +77,7 @@ export default async function LabTemplatesPage() {
                   <Disclosure openLabel="Edit" closeLabel="Close">
                     <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
                       <LabTemplateForm
+                        services={services}
                         template={{
                           id: t.id,
                           title: t.title,

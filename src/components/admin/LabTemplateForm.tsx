@@ -15,13 +15,39 @@ export type EditableLabTemplate = {
   parameters: Param[];
 };
 
+/** A LAB service that can be linked to this format. */
+export type ServiceLink = {
+  id: string;
+  name: string;
+  labTemplateId: string | null;
+  labTemplateTitle: string | null;
+};
+
 const emptyParam = (): Param => ({ name: "", unit: "", referenceRange: "" });
 
-export function LabTemplateForm({ template }: { template?: EditableLabTemplate }) {
+export function LabTemplateForm({
+  template,
+  services = [],
+}: {
+  template?: EditableLabTemplate;
+  services?: ServiceLink[];
+}) {
   const isEdit = Boolean(template);
   const [params, setParams] = useState<Param[]>(
     template?.parameters?.length ? template.parameters : [emptyParam()],
   );
+  const [linked, setLinked] = useState<Set<string>>(
+    () => new Set(services.filter((s) => s.labTemplateId === template?.id).map((s) => s.id)),
+  );
+
+  function toggleService(id: string) {
+    setLinked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function action(prev: State, formData: FormData): Promise<State> {
     const result = await saveLabTemplate(formData);
@@ -34,11 +60,13 @@ export function LabTemplateForm({ template }: { template?: EditableLabTemplate }
   }
 
   const paramsJson = JSON.stringify(params.filter((p) => p.name.trim()));
+  const serviceIdsJson = JSON.stringify([...linked]);
 
   return (
     <form action={formAction} className="space-y-4">
       {isEdit && <input type="hidden" name="id" value={template?.id} />}
       <input type="hidden" name="parameters" value={paramsJson} />
+      <input type="hidden" name="serviceIds" value={serviceIdsJson} />
 
       <div>
         <label className="field-label" htmlFor={`labtitle-${template?.id ?? "new"}`}>
@@ -102,6 +130,46 @@ export function LabTemplateForm({ template }: { template?: EditableLabTemplate }
         >
           + Add parameter
         </button>
+      </div>
+
+      <div>
+        <p className="field-label">Linked services</p>
+        <p className="mb-2 text-xs text-slate-500">
+          When one of these lab services is billed, this format loads automatically for the
+          technician — no manual selection.
+        </p>
+        {services.length === 0 ? (
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            No lab services yet. Add lab services (department: Lab) under{" "}
+            <span className="font-medium">Services</span> first.
+          </p>
+        ) : (
+          <div className="max-h-52 space-y-0.5 overflow-auto rounded-lg border border-slate-200 p-2">
+            {services.map((s) => {
+              const checked = linked.has(s.id);
+              const elsewhere = s.labTemplateId && s.labTemplateId !== template?.id;
+              return (
+                <label
+                  key={s.id}
+                  className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleService(s.id)}
+                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-300"
+                  />
+                  <span className="flex-1 text-slate-700">{s.name}</span>
+                  {elsewhere && !checked && (
+                    <span className="text-[11px] text-amber-600">
+                      currently: {s.labTemplateTitle}
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {state && !state.ok && (

@@ -59,9 +59,13 @@ export async function createBill(
         const patient = await tx.patient.findUnique({ where: { id: patientId } });
         if (!patient) throw new Error("PATIENT_NOT_FOUND");
 
-        // Pull authoritative prices for the requested services.
+        // Pull authoritative prices for the requested services. LAB services
+        // carry their linked result format so the lab report is pre-loaded.
         const services = await tx.service.findMany({
           where: { id: { in: items.map((i) => i.serviceId) }, active: true },
+          include: {
+            labTemplate: { include: { parameters: { orderBy: { position: "asc" } } } },
+          },
         });
         const byId = new Map(services.map((s) => [s.id, s]));
 
@@ -105,8 +109,28 @@ export async function createBill(
             });
             reportId = report.id;
           } else if (l.svc.department === "LAB") {
+            // Pre-load the linked format's parameters so the technician just
+            // enters values — no format selection in the worklist.
+            const tpl = l.svc.labTemplate;
             const labReport = await tx.labReport.create({
-              data: { patientId, status: "DRAFT", createdMonthYear: month },
+              data: {
+                patientId,
+                status: "DRAFT",
+                createdMonthYear: month,
+                templateId: tpl?.id ?? null,
+                results: tpl
+                  ? {
+                      create: tpl.parameters.map((p, i) => ({
+                        name: p.name,
+                        value: "",
+                        unit: p.unit,
+                        referenceRange: p.referenceRange,
+                        flag: "NORMAL" as const,
+                        position: i,
+                      })),
+                    }
+                  : undefined,
+              },
               select: { id: true },
             });
             labReportId = labReport.id;

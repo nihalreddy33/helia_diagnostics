@@ -6,7 +6,7 @@ import { LAB_FLAGS, LAB_FLAG_LABELS } from "@/lib/types";
 import type { ActionResult, LabFlag, ReportStatus } from "@/lib/types";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { StatusBadge } from "@/components/ui/Badge";
-import type { LabResultRow, LabTemplateOption, LabWorklistItem } from "./types";
+import type { LabResultRow, LabWorklistItem } from "./types";
 
 type State = (ActionResult<{ id: string; status: ReportStatus }> & { key: number }) | null;
 
@@ -23,34 +23,11 @@ const emptyRow = (): LabResultRow => ({
   flag: "NORMAL",
 });
 
-export function LabReportEditor({
-  item,
-  templates,
-}: {
-  item: LabWorklistItem;
-  templates: LabTemplateOption[];
-}) {
-  const [templateId, setTemplateId] = useState(item.templateId ?? "");
+export function LabReportEditor({ item }: { item: LabWorklistItem }) {
   const [rows, setRows] = useState<LabResultRow[]>(
     item.results.length > 0 ? item.results : [],
   );
   const [state, formAction] = useActionState<State, FormData>(action, null);
-
-  function loadTemplate(nextId: string) {
-    setTemplateId(nextId);
-    const tpl = templates.find((t) => t.id === nextId);
-    if (tpl) {
-      setRows(
-        tpl.parameters.map((p) => ({
-          name: p.name,
-          value: "",
-          unit: p.unit,
-          referenceRange: p.referenceRange,
-          flag: "NORMAL",
-        })),
-      );
-    }
-  }
 
   function updateRow(i: number, patch: Partial<LabResultRow>) {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -87,32 +64,10 @@ export function LabReportEditor({
 
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="reportId" value={item.id} />
-        <input type="hidden" name="templateId" value={templateId} />
+        <input type="hidden" name="templateId" value={item.templateId ?? ""} />
         <input type="hidden" name="results" value={resultsJson} />
 
-        <div>
-          <label htmlFor="labTemplate" className="field-label">
-            Load a test format
-          </label>
-          <select
-            id="labTemplate"
-            value={templateId}
-            onChange={(e) => loadTemplate(e.target.value)}
-            className="field-input"
-          >
-            <option value="">Select a lab test…</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-slate-500">
-            Loading a format fills the parameters and reference ranges. Enter the result for each.
-          </p>
-        </div>
-
-        {/* Results table */}
+        {/* Results table — parameters are pre-loaded from the ordered test's format */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -129,7 +84,8 @@ export function LabReportEditor({
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-4 text-center text-sm text-slate-400">
-                    Load a test format above, or add a parameter.
+                    No format linked to this test. Add parameters below, or ask an admin to link a
+                    format under Lab Tests.
                   </td>
                 </tr>
               ) : (

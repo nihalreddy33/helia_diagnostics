@@ -190,10 +190,16 @@ model Service {
   active     Boolean    @default(true)
   createdAt  DateTime   @default(now())
 
+  // For LAB services: the result format loaded automatically when billed, so the
+  // technician never picks a format. Linked from the admin Lab Tests section.
+  labTemplateId String?      @db.Uuid
+  labTemplate   LabTemplate? @relation(fields: [labTemplateId], references: [id], onDelete: SetNull)
+
   billItems BillItem[]
 
   @@index([active])
   @@index([department])
+  @@index([labTemplateId])
 }
 
 model Bill {
@@ -271,6 +277,8 @@ model LabTemplate {
 
   parameters LabTemplateParameter[]
   reports    LabReport[]
+  // LAB services that use this format (auto-loaded when billed).
+  services   Service[]
 }
 
 model LabTemplateParameter {

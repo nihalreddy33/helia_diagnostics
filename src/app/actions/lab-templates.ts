@@ -24,6 +24,16 @@ function parseParams(raw: string): ParamInput[] {
   }
 }
 
+function parseIds(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.map((x) => String(x)).filter(Boolean))];
+  } catch {
+    return [];
+  }
+}
+
 /** ADMIN only — create or update a lab test format with its parameters. */
 export async function saveLabTemplate(
   formData: FormData,
@@ -31,34 +41,57 @@ export async function saveLabTemplate(
   const id = String(formData.get("id") ?? "").trim() || undefined;
   const title = String(formData.get("title") ?? "").trim();
   const params = parseParams(String(formData.get("parameters") ?? "[]"));
+  const serviceIds = parseIds(String(formData.get("serviceIds") ?? "[]"));
 
   if (!title) return { ok: false, error: "Test name is required." };
   if (params.length === 0) return { ok: false, error: "Add at least one parameter." };
 
   try {
     const result = await withRole("ADMIN", async () => {
-      const paramData = params.map((p, i) => ({
-        name: p.name,
-        unit: p.unit,
-        referenceRange: p.referenceRange,
-        position: i,
-      }));
+      return prisma.$transaction(async (tx) => {
+        const paramData = params.map((p, i) => ({
+          name: p.name,
+          unit: p.unit,
+          referenceRange: p.referenceRange,
+          position: i,
+        }));
 
-      if (id) {
-        // Replace the parameter set wholesale.
-        await prisma.labTemplateParameter.deleteMany({ where: { templateId: id } });
-        return prisma.labTemplate.update({
-          where: { id },
-          data: { title, parameters: { create: paramData } },
-          select: { id: true },
+        let saved: { id: string };
+        if (id) {
+          // Replace the parameter set wholesale.
+          await tx.labTemplateParameter.deleteMany({ where: { templateId: id } });
+          saved = await tx.labTemplate.update({
+            where: { id },
+            data: { title, parameters: { create: paramData } },
+            select: { id: true },
+          });
+        } else {
+          saved = await tx.labTemplate.create({
+            data: { title, parameters: { create: paramData } },
+            select: { id: true },
+          });
+        }
+
+        // Reconcile which LAB services use this format: link the selected ones
+        // (moving them off any other format) and unlink deselected ones.
+        if (serviceIds.length > 0) {
+          await tx.service.updateMany({
+            where: { id: { in: serviceIds }, department: "LAB" },
+            data: { labTemplateId: saved.id },
+          });
+        }
+        await tx.service.updateMany({
+          where: { labTemplateId: saved.id, id: { notIn: serviceIds } },
+          data: { labTemplateId: null },
         });
-      }
-      return prisma.labTemplate.create({
-        data: { title, parameters: { create: paramData } },
-        select: { id: true },
+
+        return saved;
       });
     });
-    if (result.ok) revalidatePath("/admin/lab-templates");
+    if (result.ok) {
+      revalidatePath("/admin/lab-templates");
+      revalidatePath("/receptionist/billing");
+    }
     return result;
   } catch (err) {
     return { ok: false, error: describePrismaError(err, "Could not save lab test.") };

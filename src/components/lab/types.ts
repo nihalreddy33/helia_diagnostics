@@ -18,12 +18,5 @@ export type LabWorklistItem = {
   gender: string;
   orderedTest: string | null; // billed service name, if any
   templateId: string | null;
-  results: LabResultRow[]; // existing rows to resume a draft
-};
-
-/** A lab test format the technician can load into the results table. */
-export type LabTemplateOption = {
-  id: string;
-  title: string;
-  parameters: { name: string; unit: string; referenceRange: string }[];
+  results: LabResultRow[]; // pre-loaded from the ordered test's format
 };

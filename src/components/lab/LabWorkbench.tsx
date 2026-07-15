@@ -4,15 +4,9 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/ui/Badge";
 import { LabReportEditor } from "./LabReportEditor";
-import type { LabTemplateOption, LabWorklistItem } from "./types";
+import type { LabWorklistItem } from "./types";
 
-export function LabWorkbench({
-  worklist,
-  templates,
-}: {
-  worklist: LabWorklistItem[];
-  templates: LabTemplateOption[];
-}) {
+export function LabWorkbench({ worklist }: { worklist: LabWorklistItem[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(worklist[0]?.id ?? null);
 
   useEffect(() => {
@@ -88,7 +82,7 @@ export function LabWorkbench({
 
       <section className="card p-6">
         {selected ? (
-          <LabReportEditor key={selected.id} item={selected} templates={templates} />
+          <LabReportEditor key={selected.id} item={selected} />
         ) : (
           <EmptyState title="Select a test" description="Choose a pending lab test to enter results." />
         )}
