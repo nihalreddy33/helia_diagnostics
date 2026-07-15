@@ -1,6 +1,14 @@
+import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
-import { MODALITY_LABELS, DEPARTMENT_LABELS, formatINR } from "@/lib/types";
+import {
+  MODALITY_LABELS,
+  DEPARTMENT_LABELS,
+  DEPARTMENTS,
+  formatINR,
+} from "@/lib/types";
+import type { Department } from "@/lib/types";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { EmptyState } from "@/components/EmptyState";
 import { Disclosure } from "@/components/admin/Disclosure";
@@ -8,10 +16,28 @@ import { ServiceForm } from "@/components/admin/ServiceForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function ServicesPage() {
-  const services = await safeQuery(() =>
-    prisma.service.findMany({ orderBy: [{ active: "desc" }, { name: "asc" }] }),
-  );
+export default async function ServicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; dept?: string }>;
+}) {
+  const { q, dept } = await searchParams;
+  const query = (q ?? "").trim();
+  const department = (DEPARTMENTS as readonly string[]).includes(dept ?? "")
+    ? (dept as Department)
+    : "";
+
+  const services = await safeQuery(() => {
+    const where: Prisma.ServiceWhereInput = {};
+    if (query) where.name = { contains: query, mode: "insensitive" };
+    if (department) where.department = department;
+    return prisma.service.findMany({
+      where,
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+    });
+  });
+
+  const filtered = Boolean(query || department);
 
   return (
     <div className="space-y-6">
@@ -29,14 +55,62 @@ export default async function ServicesPage() {
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">
-          All services {services && <span className="text-slate-400">({services.length})</span>}
+      <section className="space-y-3">
+        <form method="get" className="card flex flex-wrap items-end gap-3 p-4">
+          <div className="min-w-[14rem] flex-1">
+            <label htmlFor="q" className="field-label">Search</label>
+            <input
+              id="q"
+              type="search"
+              name="q"
+              defaultValue={query}
+              placeholder="Search services by name…"
+              className="field-input"
+            />
+          </div>
+          <div className="min-w-[10rem]">
+            <label htmlFor="dept" className="field-label">Department</label>
+            <select id="dept" name="dept" defaultValue={department} className="field-input">
+              <option value="">All departments</option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>
+                  {DEPARTMENT_LABELS[d]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+            >
+              Apply
+            </button>
+            <Link
+              href="/admin/services"
+              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50"
+            >
+              Reset
+            </Link>
+          </div>
+        </form>
+
+        <h2 className="text-sm font-semibold text-slate-700">
+          {filtered ? "Matching services" : "All services"}{" "}
+          {services && <span className="text-slate-400">({services.length})</span>}
         </h2>
         {services === null ? (
           <DbErrorNotice />
         ) : services.length === 0 ? (
-          <EmptyState title="No services yet" description="Add your first billable service above." icon="🧾" />
+          <EmptyState
+            title={filtered ? "No services match" : "No services yet"}
+            description={
+              filtered
+                ? "Try a different name or department."
+                : "Add your first billable service above."
+            }
+            icon="🧾"
+          />
         ) : (
           <ul className="space-y-2">
             {services.map((s) => (
