@@ -39,6 +39,10 @@ export function LabTemplateForm({
   const [linked, setLinked] = useState<Set<string>>(
     () => new Set(services.filter((s) => s.labTemplateId === template?.id).map((s) => s.id)),
   );
+  const [serviceQuery, setServiceQuery] = useState("");
+  const visibleServices = services.filter((s) =>
+    s.name.toLowerCase().includes(serviceQuery.trim().toLowerCase()),
+  );
 
   function toggleService(id: string) {
     setLinked((prev) => {
@@ -175,31 +179,47 @@ export function LabTemplateForm({
             <span className="font-medium">Services</span> first.
           </p>
         ) : (
-          <div className="max-h-52 space-y-0.5 overflow-auto rounded-lg border border-slate-200 p-2">
-            {services.map((s) => {
-              const checked = linked.has(s.id);
-              const elsewhere = s.labTemplateId && s.labTemplateId !== template?.id;
-              return (
-                <label
-                  key={s.id}
-                  className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-slate-50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleService(s.id)}
-                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-300"
-                  />
-                  <span className="flex-1 text-slate-700">{s.name}</span>
-                  {elsewhere && !checked && (
-                    <span className="text-[11px] text-amber-600">
-                      currently: {s.labTemplateTitle}
-                    </span>
-                  )}
-                </label>
-              );
-            })}
-          </div>
+          <>
+            <input
+              type="search"
+              value={serviceQuery}
+              onChange={(e) => setServiceQuery(e.target.value)}
+              placeholder="Search services…"
+              aria-label="Search lab services"
+              className="mb-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            />
+            <div className="max-h-52 space-y-0.5 overflow-auto rounded-lg border border-slate-200 p-2">
+              {visibleServices.length === 0 ? (
+                <p className="px-2 py-2 text-xs text-slate-400">
+                  No services match “{serviceQuery}”.
+                </p>
+              ) : (
+                visibleServices.map((s) => {
+                  const checked = linked.has(s.id);
+                  const elsewhere = s.labTemplateId && s.labTemplateId !== template?.id;
+                  return (
+                    <label
+                      key={s.id}
+                      className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-slate-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleService(s.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-300"
+                      />
+                      <span className="flex-1 text-slate-700">{s.name}</span>
+                      {elsewhere && !checked && (
+                        <span className="text-[11px] text-amber-600">
+                          currently: {s.labTemplateTitle}
+                        </span>
+                      )}
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          </>
         )}
       </div>
 
