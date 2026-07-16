@@ -138,6 +138,37 @@ export function LabTemplateForm({
           When one of these lab services is billed, this format loads automatically for the
           technician — no manual selection.
         </p>
+        {services.length > 0 && (
+          <div className="mb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Currently linked
+            </p>
+            {linked.size === 0 ? (
+              <p className="mt-1 text-xs text-slate-400">No services linked yet.</p>
+            ) : (
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {services
+                  .filter((s) => linked.has(s.id))
+                  .map((s) => (
+                    <span
+                      key={s.id}
+                      className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 ring-1 ring-inset ring-brand-200"
+                    >
+                      {s.name}
+                      <button
+                        type="button"
+                        onClick={() => toggleService(s.id)}
+                        className="text-brand-400 hover:text-red-600"
+                        aria-label={`Unlink ${s.name}`}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
         {services.length === 0 ? (
           <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
             No lab services yet. Add lab services (department: Lab) under{" "}

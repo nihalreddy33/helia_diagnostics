@@ -32,6 +32,15 @@ export default async function LabTemplatesPage() {
       labTemplateTitle: s.labTemplate?.title ?? null,
     })) ?? [];
 
+  // Which service names are linked to each format (for the at-a-glance summary).
+  const linksByTemplate = new Map<string, string[]>();
+  for (const s of services) {
+    if (!s.labTemplateId) continue;
+    const arr = linksByTemplate.get(s.labTemplateId) ?? [];
+    arr.push(s.name);
+    linksByTemplate.set(s.labTemplateId, arr);
+  }
+
   return (
     <div className="space-y-6">
       <header>
@@ -73,6 +82,19 @@ export default async function LabTemplatesPage() {
                     {t.parameters.map((p) => p.name).join(" · ")}
                   </p>
                 )}
+                {(() => {
+                  const linked = linksByTemplate.get(t.id) ?? [];
+                  return (
+                    <p className="mt-1.5 text-xs">
+                      <span className="font-medium text-slate-500">Linked services: </span>
+                      {linked.length > 0 ? (
+                        <span className="text-brand-700">{linked.join(", ")}</span>
+                      ) : (
+                        <span className="text-slate-400">none yet</span>
+                      )}
+                    </p>
+                  );
+                })()}
                 <div className="mt-3 border-t border-slate-100 pt-3">
                   <Disclosure openLabel="Edit" closeLabel="Close">
                     <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
