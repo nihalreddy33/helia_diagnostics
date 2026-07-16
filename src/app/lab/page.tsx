@@ -13,7 +13,26 @@ export default async function LabPage() {
       orderBy: { createdAt: "asc" },
       include: {
         patient: true,
-        billItem: { select: { description: true } },
+        // Include the ordered service's linked format so reports billed BEFORE
+        // the format was linked still show the parameters (retroactive fallback).
+        billItem: {
+          select: {
+            description: true,
+            service: {
+              select: {
+                labTemplate: {
+                  select: {
+                    id: true,
+                    parameters: {
+                      orderBy: { position: "asc" },
+                      select: { name: true, unit: true, referenceRange: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
         results: { orderBy: { position: "asc" } },
       },
     });
@@ -33,23 +52,37 @@ export default async function LabPage() {
         <DbErrorNotice />
       ) : (
         <LabWorkbench
-          worklist={data.reports.map<LabWorklistItem>((r) => ({
-            id: r.id,
-            status: r.status,
-            patientName: r.patient.name,
-            uhid: r.patient.uhid,
-            age: r.patient.age,
-            gender: r.patient.gender,
-            orderedTest: r.billItem?.description ?? null,
-            templateId: r.templateId,
-            results: r.results.map((x) => ({
-              name: x.name,
-              value: x.value,
-              unit: x.unit,
-              referenceRange: x.referenceRange,
-              flag: x.flag,
-            })),
-          }))}
+          worklist={data.reports.map<LabWorklistItem>((r) => {
+            const linkedTpl = r.billItem?.service?.labTemplate ?? null;
+            const results =
+              r.results.length > 0
+                ? r.results.map((x) => ({
+                    name: x.name,
+                    value: x.value,
+                    unit: x.unit,
+                    referenceRange: x.referenceRange,
+                    flag: x.flag,
+                  }))
+                : // Report billed before its format was linked — load the format now.
+                  (linkedTpl?.parameters ?? []).map((p) => ({
+                    name: p.name,
+                    value: "",
+                    unit: p.unit,
+                    referenceRange: p.referenceRange,
+                    flag: "NORMAL" as const,
+                  }));
+            return {
+              id: r.id,
+              status: r.status,
+              patientName: r.patient.name,
+              uhid: r.patient.uhid,
+              age: r.patient.age,
+              gender: r.patient.gender,
+              orderedTest: r.billItem?.description ?? null,
+              templateId: r.templateId ?? linkedTpl?.id ?? null,
+              results,
+            };
+          })}
         />
       )}
     </div>
