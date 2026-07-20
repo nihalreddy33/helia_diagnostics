@@ -225,7 +225,7 @@ function LabView({ r }: { r: LabData }) {
         {r.results.length === 0 && <p className="mt-4 text-sm text-slate-400">No results recorded.</p>}
       </div>
 
-      <Signature label="Lab In-Charge" />
+      <Signature label="Lab In-Charge" signatureSrc="/lab-signature.png" />
       <Disclaimer text="This is an electronically generated report. Results should be correlated clinically." />
     </>
   );
@@ -325,10 +325,19 @@ function Block({
   );
 }
 
-function Signature({ label }: { label: string }) {
+function Signature({ label, signatureSrc }: { label: string; signatureSrc?: string }) {
   return (
     <section className="mt-12 flex justify-end">
       <div className="text-center">
+        {signatureSrc && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={signatureSrc}
+            alt=""
+            aria-hidden="true"
+            className="mx-auto mb-1 h-12 w-auto object-contain"
+          />
+        )}
         <div className="h-px w-52 bg-slate-400" />
         <p className="mt-2 text-sm font-semibold text-slate-800">{label}</p>
       </div>

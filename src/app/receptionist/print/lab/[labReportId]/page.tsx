@@ -123,6 +123,13 @@ export default async function LabReportPrintPage({
 
         <section className="mt-16 flex justify-end">
           <div className="text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/lab-signature.png"
+              alt=""
+              aria-hidden="true"
+              className="mx-auto mb-1 h-14 w-auto object-contain"
+            />
             <div className="h-px w-56 bg-slate-400" />
             <p className="mt-2 text-sm font-semibold text-slate-800">Lab In-Charge</p>
           </div>
