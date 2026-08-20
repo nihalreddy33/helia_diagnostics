@@ -7,6 +7,10 @@ import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
+/** Label for bills with no referring doctor, and the slug its drill-down uses. */
+const NOT_RECORDED_LABEL = "(not recorded)";
+const NOT_RECORDED_SLUG = "--none--";
+
 type DoctorRow = {
   name: string; // display name (as most commonly recorded)
   bills: number;
@@ -53,7 +57,7 @@ export default async function ReferralsPage({
   // Group by doctor, case-insensitively; keep the most frequent spelling for display.
   const groups = new Map<string, { spellings: Map<string, number>; bills: number; billed: number; collected: number }>();
   for (const b of data.bills) {
-    const raw = b.referringDoctor.trim() || "(not recorded)";
+    const raw = b.referringDoctor.trim() || NOT_RECORDED_LABEL;
     const key = raw.toLowerCase();
     const g = groups.get(key) ?? { spellings: new Map(), bills: 0, billed: 0, collected: 0 };
     g.spellings.set(raw, (g.spellings.get(raw) ?? 0) + 1);
@@ -158,7 +162,16 @@ export default async function ReferralsPage({
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.name.toLowerCase()} className="border-b border-slate-100 last:border-0">
-                    <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
+                    <td className="px-4 py-2.5 font-medium">
+                      <Link
+                        href={`/admin/referrals/${encodeURIComponent(
+                          r.name === NOT_RECORDED_LABEL ? NOT_RECORDED_SLUG : r.name.toLowerCase(),
+                        )}${selectedMonth ? `?month=${encodeURIComponent(selectedMonth)}` : ""}`}
+                        className="text-slate-800 hover:text-brand-700 hover:underline"
+                      >
+                        {r.name}
+                      </Link>
+                    </td>
                     <td className="px-4 py-2.5 text-center text-slate-600">{r.bills}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-slate-800">{formatINR(r.billed)}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-emerald-700">{formatINR(r.collected)}</td>
