@@ -16,14 +16,51 @@ import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
-/** Start/end of "today" in IST, as UTC instants for querying. */
-function istTodayRange(now: Date): { start: Date; end: Date } {
-  const istDate = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-  }).format(now); // YYYY-MM-DD
-  const start = new Date(`${istDate}T00:00:00+05:30`);
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  return { start, end };
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** "YYYY-MM-DD" for the IST calendar day containing `date`. */
+function istDayString(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(date);
+}
+
+/** Shift an IST "YYYY-MM-DD" by whole days, staying in IST. */
+function shiftDay(day: string, deltaDays: number): string {
+  return istDayString(new Date(new Date(`${day}T00:00:00+05:30`).getTime() + deltaDays * DAY_MS));
+}
+
+/** First day of the IST month containing `day`. */
+function startOfMonth(day: string): string {
+  return `${day.slice(0, 7)}-01`;
+}
+
+function isValidDay(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00+05:30`));
+}
+
+/**
+ * Resolve the ?from/?to query into an inclusive IST day range, defaulting to
+ * today. Invalid values fall back to today; a reversed range is swapped.
+ */
+function resolveRange(
+  fromParam: string | undefined,
+  toParam: string | undefined,
+  today: string,
+): { from: string; to: string } {
+  const from = fromParam && isValidDay(fromParam) ? fromParam : today;
+  const to = toParam && isValidDay(toParam) ? toParam : from;
+  return from <= to ? { from, to } : { from: to, to: from };
+}
+
+/** UTC instants bounding the inclusive IST day range, for querying. */
+function rangeToInstants(from: string, to: string): { start: Date; end: Date } {
+  return {
+    start: new Date(`${from}T00:00:00+05:30`),
+    end: new Date(new Date(`${to}T00:00:00+05:30`).getTime() + DAY_MS),
+  };
+}
+
+function longDate(day: string): string {
+  return formatLongDateIST(new Date(`${day}T12:00:00+05:30`));
 }
 
 const METHOD_ACCENT: Record<PaymentMethod, string> = {
@@ -32,9 +69,26 @@ const METHOD_ACCENT: Record<PaymentMethod, string> = {
   UPI: "text-amber-700",
 };
 
-export default async function CollectionPage() {
-  const now = new Date();
-  const { start, end } = istTodayRange(now);
+export default async function CollectionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const { from: fromParam, to: toParam } = await searchParams;
+  const today = istDayString(new Date());
+  const { from, to } = resolveRange(fromParam, toParam, today);
+  const { start, end } = rangeToInstants(from, to);
+
+  const isSingleDay = from === to;
+  const isToday = isSingleDay && from === today;
+
+  const yesterday = shiftDay(today, -1);
+  const presets: { label: string; from: string; to: string }[] = [
+    { label: "Today", from: today, to: today },
+    { label: "Yesterday", from: yesterday, to: yesterday },
+    { label: "Last 7 days", from: shiftDay(today, -6), to: today },
+    { label: "This month", from: startOfMonth(today), to: today },
+  ];
 
   const bills = await safeQuery(() =>
     prisma.bill.findMany({
@@ -49,9 +103,69 @@ export default async function CollectionPage() {
       <header>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Collection Report</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Amount collected today, {formatLongDateIST(now)}, by payment mode.
+          {isSingleDay
+            ? `Amount collected ${isToday ? "today, " : "on "}${longDate(from)}, by payment mode.`
+            : `Amount collected from ${longDate(from)} to ${longDate(to)}, by payment mode.`}
         </p>
       </header>
+
+      {/* Date-wise filter */}
+      <form method="get" className="card flex flex-wrap items-end gap-3 p-4">
+        <div className="min-w-[10rem]">
+          <label htmlFor="from" className="field-label">From</label>
+          <input
+            id="from"
+            type="date"
+            name="from"
+            defaultValue={from}
+            max={today}
+            className="field-input"
+          />
+        </div>
+        <div className="min-w-[10rem]">
+          <label htmlFor="to" className="field-label">To</label>
+          <input
+            id="to"
+            type="date"
+            name="to"
+            defaultValue={to}
+            max={today}
+            className="field-input"
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+          >
+            Apply
+          </button>
+          <Link
+            href="/receptionist/collection"
+            className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50"
+          >
+            Reset
+          </Link>
+        </div>
+        <div className="flex w-full flex-wrap gap-1.5 border-t border-slate-100 pt-3">
+          {presets.map((p) => {
+            const active = p.from === from && p.to === to;
+            return (
+              <Link
+                key={p.label}
+                href={`/receptionist/collection?from=${p.from}&to=${p.to}`}
+                className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition ${
+                  active
+                    ? "bg-brand-50 text-brand-700 ring-brand-200"
+                    : "bg-white text-slate-600 ring-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                {p.label}
+              </Link>
+            );
+          })}
+        </div>
+      </form>
 
       {bills === null ? (
         <DbErrorNotice />
@@ -94,13 +208,19 @@ export default async function CollectionPage() {
                 </div>
               </section>
 
-              {/* Today's bills */}
+              {/* Bills in the selected range */}
               <section>
-                <h2 className="mb-3 text-sm font-semibold text-slate-700">Today&apos;s bills</h2>
+                <h2 className="mb-3 text-sm font-semibold text-slate-700">
+                  {isToday ? "Today's bills" : `Bills (${bills.length})`}
+                </h2>
                 {bills.length === 0 ? (
                   <EmptyState
-                    title="No bills yet today"
-                    description="Bills raised today will be tallied here by payment mode."
+                    title={isToday ? "No bills yet today" : "No bills in this period"}
+                    description={
+                      isToday
+                        ? "Bills raised today will be tallied here by payment mode."
+                        : "Try a different date range."
+                    }
                     icon="🧾"
                   />
                 ) : (
@@ -115,7 +235,9 @@ export default async function CollectionPage() {
                             <span className="font-medium text-slate-800">{b.patient.name}</span>
                             <span className="ml-2 font-mono text-xs text-slate-400">{b.invoiceNo}</span>
                             <span className="ml-2 text-xs text-slate-400">
-                              {formatTimeIST(b.createdAt)}
+                              {isSingleDay
+                                ? formatTimeIST(b.createdAt)
+                                : `${istDayString(b.createdAt).split("-").reverse().join("/")} · ${formatTimeIST(b.createdAt)}`}
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
