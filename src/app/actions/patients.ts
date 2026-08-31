@@ -55,6 +55,32 @@ export async function searchPatients(query: string): Promise<PatientHit[]> {
 
 const GENDERS = ["Male", "Female", "Other"];
 
+/** Collapse whitespace and case so "MR  Vijay Kumar" == "Mr Vijay Kumar". */
+function normalizeName(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/**
+ * RECEPTIONIST only — patients already registered on a mobile number.
+ *
+ * One number legitimately covers a whole family here (and some numbers cover a
+ * dozen unrelated patients), so this powers a warning at registration rather
+ * than a hard uniqueness rule.
+ */
+export async function patientsOnMobile(mobile: string): Promise<PatientHit[]> {
+  const normalized = normalizeMobile(mobile);
+  if (!normalized) return [];
+  const result = await withRole("RECEPTIONIST", async () =>
+    prisma.patient.findMany({
+      where: { mobile: normalized },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: HIT_SELECT,
+    }),
+  );
+  return result.ok ? result.data : [];
+}
+
 /**
  * Normalize a mobile number to a 10-digit Indian mobile, accepting an optional
  * +91 country code or leading 0. Returns null if it isn't a valid mobile.
@@ -91,6 +117,16 @@ export async function createPatient(
 
   try {
     const result = await withRole("RECEPTIONIST", async (user) => {
+      // Re-registering the same person is almost always a mistake: it splits
+      // their history across two UHIDs. Refuse an exact name + mobile repeat.
+      // A shared number with a different name is a family member, so allowed.
+      const sameNumber = await prisma.patient.findMany({
+        where: { mobile: normalizedMobile },
+        select: { uhid: true, name: true },
+      });
+      const clash = sameNumber.find((p) => normalizeName(p.name) === normalizeName(name));
+      if (clash) throw new Error(`DUPLICATE:${clash.uhid}`);
+
       // Generate the UHID and insert the patient atomically so concurrent
       // intakes can't claim the same sequence number.
       const patient = await prisma.$transaction(async (tx) => {
@@ -113,6 +149,12 @@ export async function createPatient(
     }
     return result;
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("DUPLICATE:")) {
+      return {
+        ok: false,
+        error: `${name} is already registered on ${normalizedMobile} as ${err.message.slice(10)}. Search for that patient and bill them instead of registering again.`,
+      };
+    }
     return { ok: false, error: describePrismaError(err, "Could not register patient.") };
   }
 }

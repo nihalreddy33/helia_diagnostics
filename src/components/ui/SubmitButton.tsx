@@ -20,6 +20,7 @@ export function SubmitButton({
   pendingLabel,
   name,
   value,
+  disabled = false,
   className = "",
 }: {
   children: ReactNode;
@@ -27,6 +28,8 @@ export function SubmitButton({
   pendingLabel?: string;
   name?: string;
   value?: string;
+  /** Block submission for a reason the caller knows about (e.g. a duplicate). */
+  disabled?: boolean;
   className?: string;
 }) {
   const { pending } = useFormStatus();
@@ -35,7 +38,7 @@ export function SubmitButton({
       type="submit"
       name={name}
       value={value}
-      disabled={pending}
+      disabled={pending || disabled}
       aria-busy={pending}
       className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${className}`}
     >

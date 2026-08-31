@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { createPatient } from "@/app/actions/patients";
+import { useActionState, useEffect, useState } from "react";
+import { createPatient, patientsOnMobile, type PatientHit } from "@/app/actions/patients";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { ActionResult } from "@/lib/types";
 
@@ -26,11 +26,48 @@ async function action(prev: State, fd: FormData): Promise<State> {
   return { ...r, key: (prev?.key ?? 0) + 1 };
 }
 
+/** Same normalisation the server uses to decide an exact repeat. */
+function normalizeName(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export function PatientRegistrationForm() {
   const [state, formAction] = useActionState<State, FormData>(action, null);
+  const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [onMobile, setOnMobile] = useState<PatientHit[]>([]);
+
+  // Once a full mobile is typed, show who is already registered on it, so the
+  // receptionist can reuse that patient instead of creating a second UHID.
+  useEffect(() => {
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      setOnMobile([]);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const hits = await patientsOnMobile(mobile);
+      if (!cancelled) setOnMobile(hits);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [mobile]);
+
+  // An exact name + mobile repeat is refused by the server; flag it here first.
+  const exactMatch = onMobile.find((p) => normalizeName(p.name) === normalizeName(name));
 
   // Remount the form on every successful registration so the inputs clear.
   const formKey = state?.ok ? state.key : "form";
+
+  useEffect(() => {
+    if (state?.ok) {
+      setName("");
+      setMobile("");
+      setOnMobile([]);
+    }
+  }, [state]);
 
   return (
     <div className="space-y-4">
@@ -65,6 +102,8 @@ export function PatientRegistrationForm() {
             required
             autoComplete="off"
             placeholder="e.g. Jane Doe"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className="field-input"
           />
         </div>
@@ -84,11 +123,47 @@ export function PatientRegistrationForm() {
             pattern="[6-9][0-9]{9}"
             title="Enter a valid 10-digit mobile number (starts with 6-9)"
             placeholder="e.g. 9876543210"
-            onChange={(e) => {
-              e.currentTarget.value = sanitizeMobile(e.currentTarget.value);
-            }}
+            value={mobile}
+            onChange={(e) => setMobile(sanitizeMobile(e.target.value))}
             className="field-input"
           />
+
+          {/* Who else is on this number — a family member is fine, the same
+              person again is not. */}
+          {onMobile.length > 0 && (
+            <div
+              className={`mt-2 rounded-lg border px-3 py-2 text-xs ${
+                exactMatch
+                  ? "border-red-200 bg-red-50 text-red-800"
+                  : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
+              <p className="font-semibold">
+                {exactMatch
+                  ? `${exactMatch.name} is already registered on this number.`
+                  : `This number is already used by ${onMobile.length} patient${
+                      onMobile.length === 1 ? "" : "s"
+                    }:`}
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {onMobile.map((p) => (
+                  <li
+                    key={p.id}
+                    className={
+                      normalizeName(p.name) === normalizeName(name) ? "font-semibold" : ""
+                    }
+                  >
+                    <span className="font-mono">{p.uhid}</span> · {p.name} · {p.age}y · {p.gender}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5">
+                {exactMatch
+                  ? "Search for that patient and bill them instead of registering again."
+                  : "A family member sharing a number is fine — carry on if this is a different person."}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -126,7 +201,7 @@ export function PatientRegistrationForm() {
         </div>
 
         <div className="pt-1">
-          <SubmitButton variant="primary" pendingLabel="Registering…">
+          <SubmitButton variant="primary" pendingLabel="Registering…" disabled={Boolean(exactMatch)}>
             Register patient
           </SubmitButton>
         </div>
