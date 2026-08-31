@@ -10,7 +10,9 @@ export default async function LabPage() {
   const data = await safeQuery(async () => {
     const reports = await prisma.labReport.findMany({
       where: { status: "DRAFT" },
-      orderBy: { createdAt: "asc" },
+      // Newest first — the test just billed at reception is the one the
+      // technician is about to run, so it belongs at the top of the queue.
+      orderBy: { createdAt: "desc" },
       include: {
         patient: true,
         // Include the ordered service's linked format so reports billed BEFORE
