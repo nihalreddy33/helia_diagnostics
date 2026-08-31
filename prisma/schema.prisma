@@ -279,6 +279,28 @@ model LabTemplate {
   reports    LabReport[]
   // LAB services that use this format (auto-loaded when billed).
   services   Service[]
+
+  // Package composition. A package format bundles other formats (e.g. a fever
+  // profile made of CBP + CUE + Widal) so that one report carries every test,
+  // segregated into a section per member.
+  members  LabTemplateMember[] @relation("PackageMembers")
+  memberOf LabTemplateMember[] @relation("MemberOf")
+}
+
+model LabTemplateMember {
+  id String @id @default(uuid()) @db.Uuid
+
+  packageId String      @db.Uuid
+  package   LabTemplate @relation("PackageMembers", fields: [packageId], references: [id], onDelete: Cascade)
+
+  memberId String      @db.Uuid
+  member   LabTemplate @relation("MemberOf", fields: [memberId], references: [id], onDelete: Cascade)
+
+  position Int @default(0)
+
+  @@unique([packageId, memberId])
+  @@index([packageId])
+  @@index([memberId])
 }
 
 model LabTemplateParameter {
@@ -338,6 +360,9 @@ model LabResult {
   referenceRange String  @default("")
   flag           LabFlag @default(NORMAL)
   position       Int     @default(0)
+  // Which member test of a package this row belongs to (e.g. "CBP"). Empty for
+  // a plain single-test report, which renders as one ungrouped table.
+  section        String  @default("")
 
   @@index([reportId])
 }

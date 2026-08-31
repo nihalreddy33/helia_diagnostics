@@ -42,9 +42,13 @@ export async function saveLabTemplate(
   const title = String(formData.get("title") ?? "").trim();
   const params = parseParams(String(formData.get("parameters") ?? "[]"));
   const serviceIds = parseIds(String(formData.get("serviceIds") ?? "[]"));
+  // Member formats bundled by this one, making it a package.
+  const memberIds = parseIds(String(formData.get("memberIds") ?? "[]")).filter((m) => m !== id);
 
   if (!title) return { ok: false, error: "Test name is required." };
-  if (params.length === 0) return { ok: false, error: "Add at least one parameter." };
+  if (params.length === 0 && memberIds.length === 0) {
+    return { ok: false, error: "Add at least one parameter, or include at least one test." };
+  }
 
   try {
     const result = await withRole("ADMIN", async () => {
@@ -85,6 +89,31 @@ export async function saveLabTemplate(
           data: { labTemplateId: null },
         });
 
+        // Reconcile package membership. Members are stored in pick order, which
+        // is the order their sections appear on the report.
+        await tx.labTemplateMember.deleteMany({ where: { packageId: saved.id } });
+        if (memberIds.length > 0) {
+          // A member may not itself be a package — one level of nesting keeps
+          // expansion finite and the printed report readable.
+          const nested = await tx.labTemplateMember.findMany({
+            where: { packageId: { in: memberIds } },
+            select: { package: { select: { title: true } } },
+            distinct: ["packageId"],
+          });
+          if (nested.length > 0) {
+            throw new Error(
+              `NESTED:${nested.map((n) => n.package.title).join(", ")}`,
+            );
+          }
+          await tx.labTemplateMember.createMany({
+            data: memberIds.map((memberId, i) => ({
+              packageId: saved.id,
+              memberId,
+              position: i,
+            })),
+          });
+        }
+
         return saved;
       });
     });
@@ -94,6 +123,12 @@ export async function saveLabTemplate(
     }
     return result;
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("NESTED:")) {
+      return {
+        ok: false,
+        error: `A package can't contain another package. Remove: ${err.message.slice(7)}.`,
+      };
+    }
     return { ok: false, error: describePrismaError(err, "Could not save lab test.") };
   }
 }

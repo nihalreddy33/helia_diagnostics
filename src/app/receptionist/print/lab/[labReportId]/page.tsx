@@ -4,6 +4,7 @@ import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { PrintToolbar } from "@/components/receptionist/PrintToolbar";
 import { LAB_FLAG_LABELS, LAB_FLAG_STYLES } from "@/lib/types";
+import { groupResults } from "@/lib/lab-package";
 
 export const dynamic = "force-dynamic";
 
@@ -101,19 +102,34 @@ export default async function LabReportPrintPage({
               </tr>
             </thead>
             <tbody>
-              {report.results.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100">
-                  <td className="py-2 text-slate-800">{r.name}</td>
-                  <td className={`py-2 ${LAB_FLAG_STYLES[r.flag]}`}>
-                    {r.value || "—"}
-                    {r.flag !== "NORMAL" && (
-                      <span className="ml-1 text-[10px] uppercase">({LAB_FLAG_LABELS[r.flag]})</span>
-                    )}
-                  </td>
-                  <td className="py-2 text-slate-600">{r.unit || "—"}</td>
-                  <td className="py-2 text-slate-600">{r.referenceRange || "—"}</td>
-                </tr>
-              ))}
+              {groupResults(report.results).flatMap((g) => [
+                // Package member name, so a multi-test report stays segregated.
+                ...(g.section
+                  ? [
+                      <tr key={`h-${g.section}`} className="bg-slate-50">
+                        <td
+                          colSpan={4}
+                          className="pt-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-700"
+                        >
+                          {g.section}
+                        </td>
+                      </tr>,
+                    ]
+                  : []),
+                ...g.items.map((r) => (
+                  <tr key={r.id} className="border-b border-slate-100">
+                    <td className="py-2 text-slate-800">{r.name}</td>
+                    <td className={`py-2 ${LAB_FLAG_STYLES[r.flag]}`}>
+                      {r.value || "—"}
+                      {r.flag !== "NORMAL" && (
+                        <span className="ml-1 text-[10px] uppercase">({LAB_FLAG_LABELS[r.flag]})</span>
+                      )}
+                    </td>
+                    <td className="py-2 text-slate-600">{r.unit || "—"}</td>
+                    <td className="py-2 text-slate-600">{r.referenceRange || "—"}</td>
+                  </tr>
+                )),
+              ])}
             </tbody>
           </table>
           {report.results.length === 0 && (

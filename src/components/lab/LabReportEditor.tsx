@@ -15,13 +15,29 @@ async function action(prev: State, formData: FormData): Promise<State> {
   return { ...result, key: (prev?.key ?? 0) + 1 };
 }
 
-const emptyRow = (): LabResultRow => ({
+const emptyRow = (section = ""): LabResultRow => ({
   name: "",
   value: "",
   unit: "",
   referenceRange: "",
   flag: "NORMAL",
+  section,
 });
+
+/**
+ * Split the flat row list into consecutive runs sharing a section, keeping each
+ * row's original index so edits still address the right entry. A plain test
+ * yields one unnamed group; a package yields one per member test.
+ */
+function groupBySection(rows: LabResultRow[]): { section: string; items: { row: LabResultRow; index: number }[] }[] {
+  const groups: { section: string; items: { row: LabResultRow; index: number }[] }[] = [];
+  rows.forEach((row, index) => {
+    const last = groups[groups.length - 1];
+    if (last && last.section === row.section) last.items.push({ row, index });
+    else groups.push({ section: row.section, items: [{ row, index }] });
+  });
+  return groups;
+}
 
 export function LabReportEditor({ item }: { item: LabWorklistItem }) {
   const [rows, setRows] = useState<LabResultRow[]>(
@@ -35,6 +51,22 @@ export function LabReportEditor({ item }: { item: LabWorklistItem }) {
   function removeRow(i: number) {
     setRows((prev) => prev.filter((_, idx) => idx !== i));
   }
+  /** Insert a blank row at the end of its section, so it stays grouped. */
+  function addRow(section: string) {
+    setRows((prev) => {
+      let at = prev.length;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i]!.section === section) {
+          at = i + 1;
+          break;
+        }
+      }
+      return [...prev.slice(0, at), emptyRow(section), ...prev.slice(at)];
+    });
+  }
+
+  const groups = groupBySection(rows);
+  const isPackage = groups.some((g) => g.section);
 
   const resultsJson = JSON.stringify(rows.filter((r) => r.name.trim()));
   const approved = state?.ok && state.data.status === "APPROVED";
@@ -89,7 +121,28 @@ export function LabReportEditor({ item }: { item: LabWorklistItem }) {
                   </td>
                 </tr>
               ) : (
-                rows.map((r, i) => (
+                groups.flatMap((g) => [
+                  // Section header — only for packages, where rows are tagged.
+                  ...(g.section
+                    ? [
+                        <tr key={`h-${g.section}`} className="border-b border-slate-200 bg-slate-50">
+                          <td colSpan={5} className="py-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-700">
+                            {g.section}
+                          </td>
+                          <td className="py-1.5 text-right">
+                            <button
+                              type="button"
+                              onClick={() => addRow(g.section)}
+                              className="text-xs font-medium text-brand-600 hover:text-brand-800"
+                              aria-label={`Add a parameter to ${g.section}`}
+                            >
+                              + row
+                            </button>
+                          </td>
+                        </tr>,
+                      ]
+                    : []),
+                  ...g.items.map(({ row: r, index: i }) => (
                   <tr key={i} className="border-b border-slate-100">
                     <td className="py-1.5 pr-2">
                       <input
@@ -145,7 +198,8 @@ export function LabReportEditor({ item }: { item: LabWorklistItem }) {
                       </button>
                     </td>
                   </tr>
-                ))
+                  )),
+                ])
               )}
             </tbody>
           </table>
@@ -156,7 +210,7 @@ export function LabReportEditor({ item }: { item: LabWorklistItem }) {
           onClick={() => setRows((prev) => [...prev, emptyRow()])}
           className="rounded-lg px-3 py-1.5 text-sm font-medium text-brand-700 ring-1 ring-inset ring-brand-200 transition hover:bg-brand-50"
         >
-          + Add parameter
+          + Add parameter{isPackage ? " (ungrouped)" : ""}
         </button>
 
         {state && !state.ok && (

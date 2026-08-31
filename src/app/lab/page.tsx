@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { LabWorkbench } from "@/components/lab/LabWorkbench";
+import { expandTemplate, labTemplateWithMembers } from "@/lib/lab-package";
 import type { LabWorklistItem } from "@/components/lab/types";
 
 export const dynamic = "force-dynamic";
@@ -20,19 +21,7 @@ export default async function LabPage() {
         billItem: {
           select: {
             description: true,
-            service: {
-              select: {
-                labTemplate: {
-                  select: {
-                    id: true,
-                    parameters: {
-                      orderBy: { position: "asc" },
-                      select: { name: true, unit: true, referenceRange: true },
-                    },
-                  },
-                },
-              },
-            },
+            service: { select: { labTemplate: labTemplateWithMembers } },
           },
         },
         results: { orderBy: { position: "asc" } },
@@ -64,14 +53,17 @@ export default async function LabPage() {
                     unit: x.unit,
                     referenceRange: x.referenceRange,
                     flag: x.flag,
+                    section: x.section,
                   }))
-                : // Report billed before its format was linked — load the format now.
-                  (linkedTpl?.parameters ?? []).map((p) => ({
+                : // Report billed before its format was linked — load the format
+                  // now, expanding a package into its member sections.
+                  (linkedTpl ? expandTemplate(linkedTpl) : []).map((p) => ({
                     name: p.name,
                     value: "",
                     unit: p.unit,
                     referenceRange: p.referenceRange,
                     flag: "NORMAL" as const,
+                    section: p.section,
                   }));
             return {
               id: r.id,

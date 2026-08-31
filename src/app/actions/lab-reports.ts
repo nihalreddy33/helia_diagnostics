@@ -14,6 +14,7 @@ type ResultInput = {
   unit: string;
   referenceRange: string;
   flag: LabFlag;
+  section: string;
 };
 
 function parseResults(raw: string): ResultInput[] {
@@ -28,6 +29,7 @@ function parseResults(raw: string): ResultInput[] {
           value: String((x as ResultInput)?.value ?? "").trim(),
           unit: String((x as ResultInput)?.unit ?? "").trim(),
           referenceRange: String((x as ResultInput)?.referenceRange ?? "").trim(),
+          section: String((x as ResultInput)?.section ?? "").trim(),
           flag: (LAB_FLAGS as readonly string[]).includes(flagRaw)
             ? (flagRaw as LabFlag)
             : ("NORMAL" as LabFlag),
@@ -85,6 +87,7 @@ export async function saveLabReport(
                 value: r.value,
                 unit: r.unit,
                 referenceRange: r.referenceRange,
+                section: r.section,
                 flag: r.flag,
                 position: i,
               })),

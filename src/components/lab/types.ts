@@ -6,6 +6,8 @@ export type LabResultRow = {
   unit: string;
   referenceRange: string;
   flag: LabFlag;
+  /** Member test this row belongs to in a package; "" for a plain test. */
+  section: string;
 };
 
 /** A pending lab order awaiting results. */

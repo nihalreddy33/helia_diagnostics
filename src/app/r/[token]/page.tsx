@@ -6,6 +6,7 @@ import { readShareToken } from "@/lib/share";
 import { PrintButton } from "@/components/receptionist/PrintButton";
 import { A4Frame } from "@/components/A4Frame";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
+import { groupResults } from "@/lib/lab-package";
 import {
   MODALITY_LABELS,
   LAB_FLAG_LABELS,
@@ -207,19 +208,34 @@ function LabView({ r }: { r: LabData }) {
             </tr>
           </thead>
           <tbody>
-            {r.results.map((res) => (
-              <tr key={res.id} className="border-b border-slate-100">
-                <td className="py-2 pr-2 text-slate-800">{res.name}</td>
-                <td className={`py-2 pr-2 ${LAB_FLAG_STYLES[res.flag]}`}>
-                  {res.value || "—"}
-                  {res.flag !== "NORMAL" && (
-                    <span className="ml-1 text-[10px] uppercase">({LAB_FLAG_LABELS[res.flag]})</span>
-                  )}
-                </td>
-                <td className="py-2 pr-2 text-slate-600">{res.unit || "—"}</td>
-                <td className="py-2 text-slate-600">{res.referenceRange || "—"}</td>
-              </tr>
-            ))}
+            {groupResults(r.results).flatMap((g) => [
+              // Package member name, so a multi-test report stays segregated.
+              ...(g.section
+                ? [
+                    <tr key={`h-${g.section}`} className="bg-slate-50">
+                      <td
+                        colSpan={4}
+                        className="pt-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-700"
+                      >
+                        {g.section}
+                      </td>
+                    </tr>,
+                  ]
+                : []),
+              ...g.items.map((res) => (
+                <tr key={res.id} className="border-b border-slate-100">
+                  <td className="py-2 pr-2 text-slate-800">{res.name}</td>
+                  <td className={`py-2 pr-2 ${LAB_FLAG_STYLES[res.flag]}`}>
+                    {res.value || "—"}
+                    {res.flag !== "NORMAL" && (
+                      <span className="ml-1 text-[10px] uppercase">({LAB_FLAG_LABELS[res.flag]})</span>
+                    )}
+                  </td>
+                  <td className="py-2 pr-2 text-slate-600">{res.unit || "—"}</td>
+                  <td className="py-2 text-slate-600">{res.referenceRange || "—"}</td>
+                </tr>
+              )),
+            ])}
           </tbody>
         </table>
         {r.results.length === 0 && <p className="mt-4 text-sm text-slate-400">No results recorded.</p>}

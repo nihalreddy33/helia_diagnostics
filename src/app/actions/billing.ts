@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { withRole } from "@/lib/auth";
 import { describePrismaError } from "@/lib/prisma-errors";
 import { nextInvoiceNo } from "@/lib/invoice";
+import { expandTemplate, labTemplateWithMembers } from "@/lib/lab-package";
 import { logActivity } from "@/lib/activity";
 import { currentMonthYear, rupeesToPaise } from "@/lib/types";
 import type { ActionResult, PaymentMethod, PaymentStatus } from "@/lib/types";
@@ -64,7 +65,7 @@ export async function createBill(
         const services = await tx.service.findMany({
           where: { id: { in: items.map((i) => i.serviceId) }, active: true },
           include: {
-            labTemplate: { include: { parameters: { orderBy: { position: "asc" } } } },
+            labTemplate: labTemplateWithMembers,
           },
         });
         const byId = new Map(services.map((s) => [s.id, s]));
@@ -110,21 +111,25 @@ export async function createBill(
             reportId = report.id;
           } else if (l.svc.department === "LAB") {
             // Pre-load the linked format's parameters so the technician just
-            // enters values — no format selection in the worklist.
+            // enters values — no format selection in the worklist. A package
+            // expands into every member test's parameters, each tagged with
+            // its section so the report stays segregated.
             const tpl = l.svc.labTemplate;
+            const rows = tpl ? expandTemplate(tpl) : [];
             const labReport = await tx.labReport.create({
               data: {
                 patientId,
                 status: "DRAFT",
                 createdMonthYear: month,
                 templateId: tpl?.id ?? null,
-                results: tpl
+                results: rows.length
                   ? {
-                      create: tpl.parameters.map((p, i) => ({
+                      create: rows.map((p, i) => ({
                         name: p.name,
                         value: "",
                         unit: p.unit,
                         referenceRange: p.referenceRange,
+                        section: p.section,
                         flag: "NORMAL" as const,
                         position: i,
                       })),

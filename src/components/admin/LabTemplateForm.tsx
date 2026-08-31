@@ -13,6 +13,16 @@ export type EditableLabTemplate = {
   id: string;
   title: string;
   parameters: Param[];
+  /** Member format ids, in report order, when this format is a package. */
+  memberIds?: string[];
+};
+
+/** Another lab format that can be bundled into a package. */
+export type TemplateOption = {
+  id: string;
+  title: string;
+  parameterCount: number;
+  isPackage: boolean;
 };
 
 /** A LAB service that can be linked to this format. */
@@ -28,14 +38,38 @@ const emptyParam = (): Param => ({ name: "", unit: "", referenceRange: "" });
 export function LabTemplateForm({
   template,
   services = [],
+  templates = [],
 }: {
   template?: EditableLabTemplate;
   services?: ServiceLink[];
+  templates?: TemplateOption[];
 }) {
   const isEdit = Boolean(template);
   const [params, setParams] = useState<Param[]>(
     template?.parameters?.length ? template.parameters : [emptyParam()],
   );
+  // Ordered member list — the order sections appear on the printed report.
+  const [members, setMembers] = useState<string[]>(template?.memberIds ?? []);
+  const [memberQuery, setMemberQuery] = useState("");
+  // A format can't contain itself, and packages can't nest.
+  const candidates = templates.filter((t) => t.id !== template?.id && !t.isPackage);
+  const visibleCandidates = candidates.filter((t) =>
+    t.title.toLowerCase().includes(memberQuery.trim().toLowerCase()),
+  );
+  const byId = new Map(templates.map((t) => [t.id, t]));
+
+  function toggleMember(id: string) {
+    setMembers((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]));
+  }
+  function moveMember(index: number, delta: number) {
+    setMembers((prev) => {
+      const next = [...prev];
+      const to = index + delta;
+      if (to < 0 || to >= next.length) return prev;
+      [next[index], next[to]] = [next[to]!, next[index]!];
+      return next;
+    });
+  }
   const [linked, setLinked] = useState<Set<string>>(
     () => new Set(services.filter((s) => s.labTemplateId === template?.id).map((s) => s.id)),
   );
@@ -65,12 +99,16 @@ export function LabTemplateForm({
 
   const paramsJson = JSON.stringify(params.filter((p) => p.name.trim()));
   const serviceIdsJson = JSON.stringify([...linked]);
+  const memberIdsJson = JSON.stringify(members);
+  const isPackage = members.length > 0;
+  const packageParamCount = members.reduce((n, id) => n + (byId.get(id)?.parameterCount ?? 0), 0);
 
   return (
     <form action={formAction} className="space-y-4">
       {isEdit && <input type="hidden" name="id" value={template?.id} />}
       <input type="hidden" name="parameters" value={paramsJson} />
       <input type="hidden" name="serviceIds" value={serviceIdsJson} />
+      <input type="hidden" name="memberIds" value={memberIdsJson} />
 
       <div>
         <label className="field-label" htmlFor={`labtitle-${template?.id ?? "new"}`}>
@@ -87,8 +125,109 @@ export function LabTemplateForm({
         />
       </div>
 
+      {/* Package composition — bundle other formats into this one */}
       <div>
-        <p className="field-label">Parameters</p>
+        <p className="field-label">Package — tests included</p>
+        <p className="mb-2 text-xs text-slate-500">
+          Bundle other lab formats to make this a package (e.g. a fever profile of CBP + CUE +
+          Widal). Each included test prints as its own section on the report.
+        </p>
+
+        {isPackage && (
+          <div className="mb-2 rounded-lg border border-brand-200 bg-brand-50/60 p-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-600">
+              Included ({members.length}) · {packageParamCount} parameters · report order
+            </p>
+            <ol className="mt-1.5 space-y-1">
+              {members.map((id, i) => (
+                <li
+                  key={id}
+                  className="flex items-center gap-2 rounded bg-white px-2 py-1 text-sm ring-1 ring-inset ring-brand-100"
+                >
+                  <span className="w-5 text-xs font-semibold text-brand-500">{i + 1}.</span>
+                  <span className="flex-1 text-slate-700">
+                    {byId.get(id)?.title ?? "(removed format)"}
+                    <span className="ml-1.5 text-xs text-slate-400">
+                      {byId.get(id)?.parameterCount ?? 0} params
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => moveMember(i, -1)}
+                    disabled={i === 0}
+                    className="px-1 text-slate-400 hover:text-brand-700 disabled:opacity-30"
+                    aria-label={`Move ${byId.get(id)?.title ?? "test"} up`}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveMember(i, 1)}
+                    disabled={i === members.length - 1}
+                    className="px-1 text-slate-400 hover:text-brand-700 disabled:opacity-30"
+                    aria-label={`Move ${byId.get(id)?.title ?? "test"} down`}
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleMember(id)}
+                    className="px-1 text-slate-400 hover:text-red-600"
+                    aria-label={`Remove ${byId.get(id)?.title ?? "test"} from package`}
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {candidates.length === 0 ? (
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            No other lab formats available to bundle yet.
+          </p>
+        ) : (
+          <>
+            <input
+              type="search"
+              value={memberQuery}
+              onChange={(e) => setMemberQuery(e.target.value)}
+              placeholder="Search tests to include…"
+              aria-label="Search lab tests to include in this package"
+              className="mb-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            />
+            <div className="max-h-44 space-y-0.5 overflow-auto rounded-lg border border-slate-200 p-2">
+              {visibleCandidates.length === 0 ? (
+                <p className="px-2 py-2 text-xs text-slate-400">
+                  No tests match “{memberQuery}”.
+                </p>
+              ) : (
+                visibleCandidates.map((t) => (
+                  <label
+                    key={t.id}
+                    className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={members.includes(t.id)}
+                      onChange={() => toggleMember(t.id)}
+                      className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-300"
+                    />
+                    <span className="flex-1 text-slate-700">{t.title}</span>
+                    <span className="text-[11px] text-slate-400">{t.parameterCount} params</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div>
+        <p className="field-label">
+          Parameters{isPackage && <span className="ml-1 font-normal text-slate-400">(optional for a package)</span>}
+        </p>
         <div className="space-y-2">
           <div className="hidden grid-cols-[1fr_6rem_8rem_2rem] gap-2 text-[11px] uppercase tracking-wider text-slate-400 sm:grid">
             <span>Name</span>
