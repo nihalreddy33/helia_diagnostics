@@ -4,7 +4,6 @@ import { safeQuery } from "@/lib/db-helpers";
 import {
   formatINR,
   formatTimeIST,
-  formatLongDateIST,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
@@ -12,56 +11,17 @@ import {
 } from "@/lib/types";
 import type { PaymentMethod } from "@/lib/types";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
+import {
+  istDayString,
+  longDate,
+  rangeToInstants,
+  resolveRange,
+  shiftDay,
+  startOfMonth,
+} from "@/lib/date-range";
 import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** "YYYY-MM-DD" for the IST calendar day containing `date`. */
-function istDayString(date: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(date);
-}
-
-/** Shift an IST "YYYY-MM-DD" by whole days, staying in IST. */
-function shiftDay(day: string, deltaDays: number): string {
-  return istDayString(new Date(new Date(`${day}T00:00:00+05:30`).getTime() + deltaDays * DAY_MS));
-}
-
-/** First day of the IST month containing `day`. */
-function startOfMonth(day: string): string {
-  return `${day.slice(0, 7)}-01`;
-}
-
-function isValidDay(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00+05:30`));
-}
-
-/**
- * Resolve the ?from/?to query into an inclusive IST day range, defaulting to
- * today. Invalid values fall back to today; a reversed range is swapped.
- */
-function resolveRange(
-  fromParam: string | undefined,
-  toParam: string | undefined,
-  today: string,
-): { from: string; to: string } {
-  const from = fromParam && isValidDay(fromParam) ? fromParam : today;
-  const to = toParam && isValidDay(toParam) ? toParam : from;
-  return from <= to ? { from, to } : { from: to, to: from };
-}
-
-/** UTC instants bounding the inclusive IST day range, for querying. */
-function rangeToInstants(from: string, to: string): { start: Date; end: Date } {
-  return {
-    start: new Date(`${from}T00:00:00+05:30`),
-    end: new Date(new Date(`${to}T00:00:00+05:30`).getTime() + DAY_MS),
-  };
-}
-
-function longDate(day: string): string {
-  return formatLongDateIST(new Date(`${day}T12:00:00+05:30`));
-}
 
 const METHOD_ACCENT: Record<PaymentMethod, string> = {
   CASH: "text-emerald-700",

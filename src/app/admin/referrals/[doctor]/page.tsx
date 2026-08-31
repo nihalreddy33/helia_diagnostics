@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
-import {
-  formatINR,
-  formatMonthYear,
-  PAYMENT_STATUS_LABELS,
-  PAYMENT_STATUS_STYLES,
-} from "@/lib/types";
+import { formatINR, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES } from "@/lib/types";
+import { istDayString, longDate, rangeToInstants, resolveRange, shortDate } from "@/lib/date-range";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -14,15 +10,6 @@ export const dynamic = "force-dynamic";
 
 /** Sentinel slug for bills with no referring doctor recorded. */
 const NOT_RECORDED = "--none--";
-
-function formatDay(date: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Kolkata",
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-  }).format(date);
-}
 
 /**
  * Every patient and test referred by one doctor — the drill-down behind a name
@@ -34,23 +21,40 @@ export default async function ReferralDoctorPage({
   searchParams,
 }: {
   params: Promise<{ doctor: string }>;
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; q?: string }>;
 }) {
-  const [{ doctor }, { month }] = await Promise.all([params, searchParams]);
+  const [{ doctor }, { from: fromParam, to: toParam, q }] = await Promise.all([params, searchParams]);
   const slug = decodeURIComponent(doctor);
   const isNotRecorded = slug === NOT_RECORDED;
-  const selectedMonth = (month ?? "").trim();
+  const today = istDayString(new Date());
+  const hasRange = Boolean(fromParam || toParam);
+  const { from, to } = resolveRange(fromParam, toParam, today);
 
-  // Preserve the month filter on the way back to the summary.
-  const backHref = selectedMonth
-    ? `/admin/referrals?month=${encodeURIComponent(selectedMonth)}`
-    : "/admin/referrals";
+  // Preserve the range and search on the way back to the summary.
+  const backParams = new URLSearchParams();
+  if (hasRange) {
+    backParams.set("from", from);
+    backParams.set("to", to);
+  }
+  if (q?.trim()) backParams.set("q", q.trim());
+  const backHref = `/admin/referrals${backParams.toString() ? `?${backParams.toString()}` : ""}`;
+
+  const rangeLabel = !hasRange
+    ? "All time"
+    : from === to
+      ? longDate(from)
+      : `${longDate(from)} — ${longDate(to)}`;
 
   const data = await safeQuery(async () => {
     const bills = await prisma.bill.findMany({
       where: {
         cancelledAt: null,
-        ...(selectedMonth ? { createdMonthYear: selectedMonth } : {}),
+        ...(hasRange
+          ? (() => {
+              const { start, end } = rangeToInstants(from, to);
+              return { createdAt: { gte: start, lt: end } };
+            })()
+          : {}),
         ...(isNotRecorded
           ? { referringDoctor: "" }
           : { referringDoctor: { equals: slug, mode: "insensitive" as const } }),
@@ -120,8 +124,8 @@ export default async function ReferralDoctorPage({
         <EmptyState
           title="No bills for this referrer"
           description={
-            selectedMonth
-              ? `Nothing recorded in ${formatMonthYear(selectedMonth)}. Try another month.`
+            hasRange
+              ? `Nothing recorded in this period. Try a different date range.`
               : "Bills naming this doctor will be listed here."
           }
           icon="🩺"
@@ -132,9 +136,7 @@ export default async function ReferralDoctorPage({
             <div className="card p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Referrals</p>
               <p className="mt-1 font-mono text-xl font-bold text-slate-900">{bills.length}</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                {selectedMonth ? formatMonthYear(selectedMonth) : "All time"}
-              </p>
+              <p className="mt-0.5 text-xs text-slate-500">{rangeLabel}</p>
             </div>
             <div className="card p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Billed</p>
@@ -193,7 +195,7 @@ export default async function ReferralDoctorPage({
                   return (
                     <tr key={b.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                       <td className="whitespace-nowrap px-4 py-2.5 text-slate-600">
-                        {formatDay(b.createdAt)}
+                        {shortDate(b.createdAt)}
                       </td>
                       <td className="px-4 py-2.5">
                         <Link
