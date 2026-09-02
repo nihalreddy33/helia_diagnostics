@@ -72,6 +72,8 @@ model User {
   labReportsDelivered LabReport[] @relation("LabReportsDelivered")
   // Audit-trail entries for this user.
   activityLogs ActivityLog[]
+  // Expenses this user recorded in the Financial tab.
+  expenses     Expense[]     @relation("ExpensesRecorded")
 
   @@index([role])
 }
@@ -365,4 +367,42 @@ model LabResult {
   section        String  @default("")
 
   @@index([reportId])
+}
+
+/// What the centre spends money on. Kept as a small fixed set so the expense
+/// breakdown stays comparable month to month.
+enum ExpenseCategory {
+  SALARIES
+  RENT
+  CONSUMABLES
+  EQUIPMENT
+  UTILITIES
+  MAINTENANCE
+  MARKETING
+  OTHER
+}
+
+/// Money out. Revenue lives on Bill; this is the other half the Financial tab
+/// needs to show an actual profit rather than just takings.
+model Expense {
+  id       String          @id @default(uuid()) @db.Uuid
+  category ExpenseCategory
+  amount   Int // paise
+  vendor   String          @default("")
+  note     String          @default("")
+
+  paymentMethod PaymentMethod?
+
+  /// The IST day the money was actually spent — not when it was keyed in.
+  spentAt          DateTime
+  createdMonthYear String
+
+  recordedById String? @db.Uuid
+  recordedBy   User?   @relation("ExpensesRecorded", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([spentAt])
+  @@index([createdMonthYear])
+  @@index([category])
 }

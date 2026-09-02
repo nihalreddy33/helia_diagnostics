@@ -6,6 +6,7 @@ import type {
   PaymentStatus,
   Department,
   LabFlag,
+  ExpenseCategory,
 } from "@prisma/client";
 
 export type {
@@ -16,6 +17,29 @@ export type {
   PaymentStatus,
   Department,
   LabFlag,
+  ExpenseCategory,
+};
+
+export const EXPENSE_CATEGORIES: readonly ExpenseCategory[] = [
+  "SALARIES",
+  "RENT",
+  "CONSUMABLES",
+  "EQUIPMENT",
+  "UTILITIES",
+  "MAINTENANCE",
+  "MARKETING",
+  "OTHER",
+];
+
+export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+  SALARIES: "Salaries",
+  RENT: "Rent",
+  CONSUMABLES: "Consumables",
+  EQUIPMENT: "Equipment",
+  UTILITIES: "Utilities",
+  MAINTENANCE: "Maintenance",
+  MARKETING: "Marketing",
+  OTHER: "Other",
 };
 
 export const PAYMENT_METHODS: readonly PaymentMethod[] = ["CASH", "CARD", "UPI"];

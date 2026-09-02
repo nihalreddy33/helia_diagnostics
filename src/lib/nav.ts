@@ -17,6 +17,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: "/admin/lab-templates", label: "Lab Tests" },
     { href: "/admin/referring-doctors", label: "Doctors" },
     { href: "/admin/referrals", label: "Referrals" },
+    { href: "/admin/finance", label: "Financial" },
     { href: "/admin/activity", label: "Activity" },
     { href: "/admin/records", label: "Records" },
   ],
