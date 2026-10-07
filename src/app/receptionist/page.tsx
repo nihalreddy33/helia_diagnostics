@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
-import { EmptyState } from "@/components/EmptyState";
 import { PatientRegistrationForm } from "@/components/receptionist/PatientRegistrationForm";
+import { PatientDirectory } from "@/components/receptionist/PatientDirectory";
 
 export const dynamic = "force-dynamic";
 
@@ -34,34 +34,13 @@ export default async function ReceptionistPage() {
 
         <section className="lg:col-span-2">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Recently registered
+            Find / edit a patient
           </h2>
 
           {recent === null ? (
             <DbErrorNotice />
-          ) : recent.length === 0 ? (
-            <EmptyState
-              title="No patients yet"
-              description="Newly registered patients will appear here."
-              icon="🧾"
-            />
           ) : (
-            <ul className="space-y-2">
-              {recent.map((p) => (
-                <li key={p.id} className="card flex items-center justify-between gap-3 p-4">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-800">{p.name}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {p.age} yrs · {p.gender}
-                      {p.mobile ? ` · ${p.mobile}` : ""}
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-md bg-brand-50 px-2 py-1 font-mono text-xs font-semibold text-brand-700">
-                    {p.uhid}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <PatientDirectory initial={recent} />
           )}
         </section>
       </div>

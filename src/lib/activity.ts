@@ -33,6 +33,7 @@ export const ACTION_LABELS: Record<string, string> = {
   LOGIN: "Signed in",
   LOGOUT: "Signed out",
   PATIENT_REGISTERED: "Registered patient",
+  PATIENT_UPDATED: "Updated patient details",
   BILL_CREATED: "Raised bill",
   EXPENSE_RECORDED: "Recorded expense",
   EXPENSE_DELETED: "Deleted expense",
