@@ -15,6 +15,7 @@ import {
   PAYMENT_STATUS_LABELS,
   formatINR,
   formatDateTimeIST,
+  formatAge,
 } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -150,7 +151,7 @@ function ReportView({ r }: { r: ReportData }) {
           items={[
             ["UHID", r.patient.uhid],
             ["Patient name", r.patient.name],
-            ["Age / Gender", `${r.patient.age} yrs · ${r.patient.gender}`],
+            ["Age / Gender", `${formatAge(r.patient.age)} · ${r.patient.gender}`],
             ["Modality", modality],
             ["Report date", formatDay(r.approvedAt)],
             ...((r.template ? [["Study", r.template.title]] : []) as [string, string][]),
@@ -190,7 +191,7 @@ function LabView({ r }: { r: LabData }) {
           items={[
             ["UHID", r.patient.uhid],
             ["Patient name", r.patient.name],
-            ["Age / Gender", `${r.patient.age} yrs · ${r.patient.gender}`],
+            ["Age / Gender", `${formatAge(r.patient.age)} · ${r.patient.gender}`],
             ["Test", testName],
             ["Report date", formatDay(r.approvedAt)],
           ]}
@@ -268,7 +269,7 @@ function BillView({ b }: { b: BillData }) {
           items={[
             ["UHID", b.patient.uhid],
             ["Patient name", b.patient.name],
-            ["Age / Gender", `${b.patient.age} yrs · ${b.patient.gender}`],
+            ["Age / Gender", `${formatAge(b.patient.age)} · ${b.patient.gender}`],
             ["Payment", `${PAYMENT_STATUS_LABELS[b.status]}${b.paymentMethod ? ` · ${PAYMENT_METHOD_LABELS[b.paymentMethod]}` : ""}`],
           ]}
         />

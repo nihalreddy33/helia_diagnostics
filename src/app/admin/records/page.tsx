@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
-import { MODALITY_LABELS, STATUS_LABELS } from "@/lib/types";
+import { MODALITY_LABELS, STATUS_LABELS, formatAge } from "@/lib/types";
 import {
   istDayString,
   longDate,
@@ -18,6 +18,9 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 
 export const dynamic = "force-dynamic";
+
+/** Most recent patients shown in the destruction console (see the query). */
+const PATIENT_LIMIT = 200;
 
 export default async function RecordsPage({
   searchParams,
@@ -60,8 +63,11 @@ export default async function RecordsPage({
           template: { select: { title: true } },
         },
       }),
+      // Capped: with the 2022-2026 migration this table holds ~18k patients,
+      // and rendering every one would make the console unusable.
       prisma.patient.findMany({
         orderBy: { createdAt: "desc" },
+        take: PATIENT_LIMIT,
         select: {
           id: true,
           name: true,
@@ -81,7 +87,8 @@ export default async function RecordsPage({
         },
       }),
     ]);
-    return { reports, patients, templates };
+    const patientTotal = await prisma.patient.count();
+    return { reports, patients, templates, patientTotal };
   });
 
   return (
@@ -237,6 +244,11 @@ export default async function RecordsPage({
           <Section
             title="Patients"
             count={data.patients.length}
+            note={
+              data.patientTotal > data.patients.length
+                ? `showing the ${data.patients.length} most recent of ${data.patientTotal.toLocaleString("en-IN")}`
+                : undefined
+            }
             empty={
               <EmptyState
                 icon="🧑‍⚕️"
@@ -252,7 +264,7 @@ export default async function RecordsPage({
                 secondary={
                   <>
                     <span className="font-mono">{patient.uhid}</span>
-                    {` · ${patient.age} yrs · ${patient.gender} · ${patient._count.reports} report(s)`}
+                    {` · ${formatAge(patient.age)} · ${patient.gender} · ${patient._count.reports} report(s)`}
                   </>
                 }
                 delete={
@@ -329,18 +341,22 @@ function Section({
   title,
   count,
   empty,
+  note,
   children,
 }: {
   title: string;
   count: number;
   empty: React.ReactNode;
+  note?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="space-y-3">
       <h2 className="text-lg font-semibold text-slate-800">
         {title}{" "}
-        <span className="text-sm font-normal text-slate-400">({count})</span>
+        <span className="text-sm font-normal text-slate-400">
+          ({count}){note ? ` — ${note}` : ""}
+        </span>
       </h2>
       {count === 0 ? empty : <div className="space-y-2">{children}</div>}
     </section>

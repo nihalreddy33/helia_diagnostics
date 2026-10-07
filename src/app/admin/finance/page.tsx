@@ -107,12 +107,17 @@ export default async function FinancePage({
   let discounts = 0;
   const byMode: Record<PaymentMethod, number> = { CASH: 0, CARD: 0, UPI: 0 };
   const byDept = new Map<Department, number>();
+  let unrecordedMode = 0;
 
   for (const b of bills) {
     billed += b.total;
     collected += b.amountPaid;
     discounts += b.discount;
-    if (b.amountPaid > 0) byMode[(b.paymentMethod ?? "CASH") as PaymentMethod] += b.amountPaid;
+    if (b.amountPaid > 0) {
+      // Migrated bills have no payment mode on record; keep them out of Cash.
+      if (b.paymentMethod) byMode[b.paymentMethod as PaymentMethod] += b.amountPaid;
+      else unrecordedMode += b.amountPaid;
+    }
     for (const it of b.items) {
       const d = (it.service?.department ?? "OTHER") as Department;
       byDept.set(d, (byDept.get(d) ?? 0) + it.amount);
@@ -223,6 +228,9 @@ export default async function FinancePage({
             {PAYMENT_METHODS.map((m) => (
               <Row key={m} label={PAYMENT_METHOD_LABELS[m]} value={formatINR(byMode[m])} />
             ))}
+            {unrecordedMode > 0 && (
+              <Row label="Not recorded" value={formatINR(unrecordedMode)} />
+            )}
             <div className="border-t border-slate-100 pt-1.5">
               <Row label="Total" value={formatINR(collected)} strong />
             </div>

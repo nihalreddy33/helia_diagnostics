@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { createPatient, patientsOnMobile, type PatientHit } from "@/app/actions/patients";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { formatAgeShort } from "@/lib/types";
 import type { ActionResult } from "@/lib/types";
 
 const GENDERS = ["Male", "Female", "Other"] as const;
@@ -153,7 +154,7 @@ export function PatientRegistrationForm() {
                       normalizeName(p.name) === normalizeName(name) ? "font-semibold" : ""
                     }
                   >
-                    <span className="font-mono">{p.uhid}</span> · {p.name} · {p.age}y · {p.gender}
+                    <span className="font-mono">{p.uhid}</span> · {p.name} · {formatAgeShort(p.age)} · {p.gender}
                   </li>
                 ))}
               </ul>

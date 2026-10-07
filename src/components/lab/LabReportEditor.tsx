@@ -2,7 +2,7 @@
 
 import { useState, useActionState } from "react";
 import { saveLabReport } from "@/app/actions/lab-reports";
-import { LAB_FLAGS, LAB_FLAG_LABELS } from "@/lib/types";
+import { LAB_FLAGS, LAB_FLAG_LABELS, formatAge } from "@/lib/types";
 import type { ActionResult, LabFlag, ReportStatus } from "@/lib/types";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -80,7 +80,7 @@ export function LabReportEditor({ item }: { item: LabWorklistItem }) {
             <p className="mt-0.5 text-sm text-slate-600">
               <span className="font-medium text-slate-700">{item.uhid}</span>
               <span className="mx-2 text-slate-300">·</span>
-              {item.age} yrs<span className="mx-2 text-slate-300">·</span>
+              {formatAge(item.age)}<span className="mx-2 text-slate-300">·</span>
               {item.gender}
               {item.orderedTest && (
                 <>

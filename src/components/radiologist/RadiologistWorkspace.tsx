@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ReportEditor } from "./ReportEditor";
+import { formatAge } from "@/lib/types";
 import type { WorklistPatient, WorklistTemplate } from "./types";
 
 type Tab = "pending" | "completed";
@@ -130,7 +131,7 @@ export function RadiologistWorkspace({
                           {patient.report && <StatusBadge status={patient.report.status} />}
                         </span>
                         <span className="mt-0.5 block truncate text-xs text-slate-500">
-                          {patient.uhid} · {patient.age} yrs · {patient.gender}
+                          {patient.uhid} · {formatAge(patient.age)} · {patient.gender}
                         </span>
                         {patient.orderedService && (
                           <span className="mt-1 inline-block rounded bg-brand-50 px-1.5 py-0.5 text-[11px] font-medium text-brand-700">

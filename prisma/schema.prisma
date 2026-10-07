@@ -109,14 +109,22 @@ model Patient {
   id        String   @id @default(uuid()) @db.Uuid
   uhid      String   @unique // Structured hospital id, e.g. HELIA-200826-1426
   name      String
-  age       Int
+  // Nullable because the 2022-2026 records migrated from the old system carry
+  // no age. Reception fills it in at the patient's next visit; until then it
+  // renders as "—" rather than a fabricated number on a medical report.
+  age       Int?
   gender    String
   mobile    String   @default("")
+  // The old system's patient reference (e.g. MR260818264), kept so staff can
+  // still find a migrated record by the number on their old paperwork.
+  legacyMrNo String? @unique
   createdAt DateTime @default(now())
 
   reports    Report[]
   labReports LabReport[]
   bills      Bill[]
+
+  @@index([legacyMrNo])
 }
 
 model Template {
@@ -207,6 +215,8 @@ model Service {
 model Bill {
   id        String @id @default(uuid()) @db.Uuid
   invoiceNo String @unique // e.g. HELIA-INV-200826-1414
+  // The old system's bill reference (e.g. BILL_21910) for migrated history.
+  legacyBillNo String? @unique
 
   patientId String  @db.Uuid
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)

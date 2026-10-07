@@ -133,11 +133,14 @@ export default async function CollectionPage({
         (() => {
           // Sum the amount actually paid today, grouped by payment mode.
           const byMode: Record<PaymentMethod, number> = { CASH: 0, CARD: 0, UPI: 0 };
+          // Migrated bills carry no payment mode; counting them as cash would
+          // silently inflate the drawer, so they are tallied separately.
+          let unrecorded = 0;
           let total = 0;
           for (const b of bills) {
             if (b.amountPaid > 0) {
-              const m = (b.paymentMethod ?? "CASH") as PaymentMethod;
-              byMode[m] += b.amountPaid;
+              if (b.paymentMethod) byMode[b.paymentMethod as PaymentMethod] += b.amountPaid;
+              else unrecorded += b.amountPaid;
               total += b.amountPaid;
             }
           }
@@ -157,6 +160,14 @@ export default async function CollectionPage({
                     </p>
                   </div>
                 ))}
+                {unrecorded > 0 && (
+                  <div className="card p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Mode not recorded
+                    </p>
+                    <p className="mt-1 text-xl font-bold text-slate-500">{formatINR(unrecorded)}</p>
+                  </div>
+                )}
                 <div className="card border-brand-200 bg-brand-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-brand-500">
                     Total collected

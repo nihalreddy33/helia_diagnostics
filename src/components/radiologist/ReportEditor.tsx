@@ -5,7 +5,7 @@ import { saveReport } from "@/app/actions/reports";
 import { draftReport } from "@/app/actions/ai";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { StatusBadge } from "@/components/ui/Badge";
-import { MODALITY_LABELS, formatDateTimeIST } from "@/lib/types";
+import { MODALITY_LABELS, formatAge, formatDateTimeIST } from "@/lib/types";
 import type { ActionResult, ReportStatus } from "@/lib/types";
 import type { WorklistPatient, WorklistTemplate } from "./types";
 
@@ -101,7 +101,7 @@ export function ReportEditor({
             <p className="mt-0.5 text-sm text-slate-600">
               <span className="font-medium text-slate-700">{patient.uhid}</span>
               <span className="mx-2 text-slate-300">·</span>
-              {patient.age} yrs
+              {formatAge(patient.age)}
               <span className="mx-2 text-slate-300">·</span>
               {patient.gender}
             </p>

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { PrintToolbar } from "@/components/receptionist/PrintToolbar";
-import { LAB_FLAG_LABELS, LAB_FLAG_STYLES } from "@/lib/types";
+import { LAB_FLAG_LABELS, LAB_FLAG_STYLES, formatAge } from "@/lib/types";
 import { groupResults } from "@/lib/lab-package";
 
 export const dynamic = "force-dynamic";
@@ -84,7 +84,7 @@ export default async function LabReportPrintPage({
             <MetaItem label="Patient name" value={report.patient.name} />
             <MetaItem
               label="Age / Gender"
-              value={`${report.patient.age} yrs · ${report.patient.gender}`}
+              value={`${formatAge(report.patient.age)} · ${report.patient.gender}`}
             />
             <MetaItem label="Test" value={testName} />
             <MetaItem label="Report date" value={formatDate(report.approvedAt)} />

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { searchPatients, updatePatient, type PatientHit } from "@/app/actions/patients";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { formatAge } from "@/lib/types";
 import type { ActionResult } from "@/lib/types";
 
 const GENDERS = ["Male", "Female", "Other"] as const;
@@ -71,8 +72,9 @@ export function PatientDirectory({ initial }: { initial: PatientHit[] }) {
                   <p className="truncate text-sm font-semibold text-slate-800">{p.name}</p>
                   <p className="mt-0.5 truncate text-xs text-slate-500">
                     <span className="font-mono text-brand-700">{p.uhid}</span>
-                    {` · ${p.age} yrs · ${p.gender}`}
+                    {` · ${formatAge(p.age)} · ${p.gender}`}
                     {p.mobile ? ` · ${p.mobile}` : ""}
+                    {p.legacyMrNo ? ` · ${p.legacyMrNo}` : ""}
                   </p>
                 </div>
                 <button
@@ -159,7 +161,7 @@ function EditForm({ patient, onDone }: { patient: PatientHit; onDone: () => void
             min={0}
             max={150}
             required
-            defaultValue={patient.age}
+            defaultValue={patient.age ?? ""}
             className="field-input"
           />
         </div>

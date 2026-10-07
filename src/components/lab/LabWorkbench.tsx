@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/ui/Badge";
 import { LabReportEditor } from "./LabReportEditor";
+import { formatAge } from "@/lib/types";
 import type { LabWorklistItem } from "./types";
 
 export function LabWorkbench({ worklist }: { worklist: LabWorklistItem[] }) {
@@ -65,7 +66,7 @@ export function LabWorkbench({ worklist }: { worklist: LabWorklistItem[] }) {
                       <StatusBadge status={w.status} />
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-slate-500">
-                      {w.uhid} · {w.age} yrs · {w.gender}
+                      {w.uhid} · {formatAge(w.age)} · {w.gender}
                     </span>
                     {w.orderedTest && (
                       <span className="mt-1 inline-block rounded bg-brand-50 px-1.5 py-0.5 text-[11px] font-medium text-brand-700">

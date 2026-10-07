@@ -104,6 +104,19 @@ export function rupeesToPaise(rupees: string | number): number {
   return Math.round(n * 100);
 }
 
+/**
+ * Patient age for display. Records migrated from the old system carry no age,
+ * so they render as an em dash rather than a fabricated number on a report.
+ */
+export function formatAge(age: number | null | undefined): string {
+  return age === null || age === undefined ? "—" : `${age} yrs`;
+}
+
+/** Compact age for dense lists: "42y", or "—" when not on file. */
+export function formatAgeShort(age: number | null | undefined): string {
+  return age === null || age === undefined ? "—" : `${age}y`;
+}
+
 /** Format integer paise as an INR amount, e.g. 120000 -> "₹1,200.00". */
 export function formatINR(paise: number): string {
   return new Intl.NumberFormat("en-IN", {

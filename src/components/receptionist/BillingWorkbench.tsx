@@ -8,6 +8,8 @@ import { createBill } from "@/app/actions/billing";
 import { searchPatients } from "@/app/actions/patients";
 import type { PatientHit } from "@/app/actions/patients";
 import {
+  formatAge,
+  formatAgeShort,
   MODALITY_LABELS,
   DEPARTMENT_LABELS,
   PAYMENT_METHODS,
@@ -378,7 +380,7 @@ function PatientPicker({
           <div>
             <p className="font-semibold text-slate-900">{patient.name}</p>
             <p className="text-xs text-slate-500">
-              <span className="font-mono">{patient.uhid}</span> · {patient.age} yrs · {patient.gender}
+              <span className="font-mono">{patient.uhid}</span> · {formatAge(patient.age)} · {patient.gender}
               {patient.mobile ? ` · ${patient.mobile}` : ""}
             </p>
           </div>
@@ -424,7 +426,7 @@ function PatientPicker({
             >
               <span className="font-medium text-slate-800">{h.name}</span>
               <span className="text-xs text-slate-400">
-                <span className="font-mono">{h.uhid}</span> · {h.age}y · {h.gender}
+                <span className="font-mono">{h.uhid}</span> · {formatAgeShort(h.age)} · {h.gender}
                 {h.mobile ? ` · ${h.mobile}` : ""}
               </span>
             </button>

@@ -19,7 +19,7 @@ export type WorklistPatient = {
   id: string;
   uhid: string;
   name: string;
-  age: number;
+  age: number | null;
   gender: string;
   /** Scan ordered via billing for the active report, if any. */
   orderedService: string | null;

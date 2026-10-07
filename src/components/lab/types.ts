@@ -16,7 +16,7 @@ export type LabWorklistItem = {
   status: ReportStatus;
   patientName: string;
   uhid: string;
-  age: number;
+  age: number | null;
   gender: string;
   orderedTest: string | null; // billed service name, if any
   templateId: string | null;

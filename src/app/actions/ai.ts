@@ -14,7 +14,7 @@ export async function draftReport(input: {
   notes: string;
   study: string;
   modality: string;
-  age: number;
+  age: number | null;
   gender: string;
 }): Promise<ActionResult<{ findings: string; impression: string }>> {
   const notes = (input.notes ?? "").trim();
@@ -28,7 +28,7 @@ export async function draftReport(input: {
         notes,
         study: input.study || "Radiology study",
         modality: input.modality || "—",
-        age: Number.isFinite(input.age) ? input.age : 0,
+        age: input.age,
         gender: input.gender || "—",
       });
       await logActivity(

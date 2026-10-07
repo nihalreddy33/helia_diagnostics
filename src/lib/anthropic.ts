@@ -21,7 +21,7 @@ export type DraftInput = {
   /** Modality label, e.g. "Ultrasound (USG)". */
   modality: string;
   /** Patient age in years. */
-  age: number;
+  age: number | null;
   /** Patient gender. */
   gender: string;
 };
@@ -60,7 +60,7 @@ export async function draftRadiologyReport(input: DraftInput): Promise<DraftResu
   const userMessage = [
     `Study: ${input.study}`,
     `Modality: ${input.modality}`,
-    `Patient: ${input.age} years, ${input.gender}`,
+    `Patient: ${input.age === null ? "age not recorded" : `${input.age} years`}, ${input.gender}`,
     "",
     "Radiologist's rough findings notes:",
     input.notes.trim(),

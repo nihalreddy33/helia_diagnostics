@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { MODALITY_LABELS } from "@/lib/types";
+import { formatAge, MODALITY_LABELS } from "@/lib/types";
 
 export type RadiologyReportForPrint = Prisma.ReportGetPayload<{
   include: { patient: true; template: true; radiologist: true };
@@ -48,7 +48,7 @@ export function RadiologyReportSheet({ report }: { report: RadiologyReportForPri
             <MetaItem label="Patient name" value={report.patient.name} />
             <MetaItem
               label="Age / Gender"
-              value={`${report.patient.age} yrs · ${report.patient.gender}`}
+              value={`${formatAge(report.patient.age)} · ${report.patient.gender}`}
             />
             <MetaItem label="Modality" value={modalityLabel} />
             <MetaItem label="Report date" value={formatReportDate(report.approvedAt)} />

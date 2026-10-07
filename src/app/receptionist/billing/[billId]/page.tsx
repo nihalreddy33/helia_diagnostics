@@ -5,6 +5,7 @@ import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { PrintToolbar } from "@/components/receptionist/PrintToolbar";
 import { CancelBillButton } from "@/components/receptionist/CancelBillButton";
 import {
+  formatAge,
   formatINR,
   formatDateTimeIST,
   PAYMENT_METHOD_LABELS,
@@ -91,7 +92,7 @@ export default async function InvoicePage({
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Billed to</p>
             <p className="mt-1 font-semibold text-slate-900">{bill.patient.name}</p>
             <p className="text-xs text-slate-500">
-              <span className="font-mono">{bill.patient.uhid}</span> · {bill.patient.age} yrs ·{" "}
+              <span className="font-mono">{bill.patient.uhid}</span> · {formatAge(bill.patient.age)} ·{" "}
               {bill.patient.gender}
             </p>
             {bill.patient.mobile && (

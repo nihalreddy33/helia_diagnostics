@@ -11,7 +11,7 @@ export default async function ReceptionistPage() {
     prisma.patient.findMany({
       orderBy: { createdAt: "desc" },
       take: 8,
-      select: { id: true, name: true, age: true, gender: true, uhid: true, mobile: true },
+      select: { id: true, name: true, age: true, gender: true, uhid: true, mobile: true, legacyMrNo: true },
     }),
   );
 

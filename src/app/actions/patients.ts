@@ -12,9 +12,11 @@ export type PatientHit = {
   id: string;
   uhid: string;
   name: string;
-  age: number;
+  age: number | null;
   gender: string;
   mobile: string;
+  /** Old-system reference (e.g. MR260818264) on migrated records. */
+  legacyMrNo: string | null;
 };
 
 const HIT_SELECT = {
@@ -24,6 +26,7 @@ const HIT_SELECT = {
   age: true,
   gender: true,
   mobile: true,
+  legacyMrNo: true,
 } as const;
 
 /** RECEPTIONIST only — look up existing patients by name, UHID, or mobile. */
@@ -43,6 +46,8 @@ export async function searchPatients(query: string): Promise<PatientHit[]> {
           { name: { contains: q, mode: "insensitive" } },
           { uhid: { contains: q, mode: "insensitive" } },
           { mobile: { contains: q } },
+          // Staff still quote the old system's MR number off old paperwork.
+          { legacyMrNo: { contains: q, mode: "insensitive" } },
         ],
       },
       orderBy: { createdAt: "desc" },
@@ -92,9 +97,19 @@ function normalizeMobile(raw: string): string | null {
   return /^[6-9]\d{9}$/.test(digits) ? digits : null;
 }
 
-/** Shared field validation for registering and editing a patient. */
-function parsePatientFields(formData: FormData):
-  | { ok: true; name: string; age: number; gender: string; mobile: string }
+/**
+ * Shared field validation for registering and editing a patient.
+ *
+ * `ageRequired` is true when registering: a new patient is in front of the desk,
+ * so there is no excuse for a blank age. It is false when editing, because the
+ * records migrated from the old system have no age on file and must stay
+ * editable without one being invented to get past the form.
+ */
+function parsePatientFields(
+  formData: FormData,
+  { ageRequired }: { ageRequired: boolean },
+):
+  | { ok: true; name: string; age: number | null; gender: string; mobile: string }
   | { ok: false; error: string } {
   const name = String(formData.get("name") ?? "").trim();
   const ageRaw = String(formData.get("age") ?? "").trim();
@@ -102,8 +117,14 @@ function parsePatientFields(formData: FormData):
   const mobileRaw = String(formData.get("mobile") ?? "").trim();
 
   if (!name) return { ok: false, error: "Patient name is required." };
-  const age = Number(ageRaw);
-  if (!Number.isInteger(age) || age < 0 || age > 150) {
+  let age: number | null = null;
+  if (ageRaw) {
+    const n = Number(ageRaw);
+    if (!Number.isInteger(n) || n < 0 || n > 150) {
+      return { ok: false, error: "Enter a valid age between 0 and 150." };
+    }
+    age = n;
+  } else if (ageRequired) {
     return { ok: false, error: "Enter a valid age between 0 and 150." };
   }
   if (!GENDERS.includes(gender)) {
@@ -133,7 +154,7 @@ export async function updatePatient(
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return { ok: false, error: "Missing patient id." };
 
-  const parsed = parsePatientFields(formData);
+  const parsed = parsePatientFields(formData, { ageRequired: false });
   if (!parsed.ok) return { ok: false, error: parsed.error };
   const { name, age, gender, mobile } = parsed;
 
@@ -204,7 +225,7 @@ export async function updatePatient(
 export async function createPatient(
   formData: FormData,
 ): Promise<ActionResult<{ id: string; uhid: string }>> {
-  const parsed = parsePatientFields(formData);
+  const parsed = parsePatientFields(formData, { ageRequired: true });
   if (!parsed.ok) return { ok: false, error: parsed.error };
   const { name, age, gender, mobile: normalizedMobile } = parsed;
 

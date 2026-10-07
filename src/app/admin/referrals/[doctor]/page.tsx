@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-helpers";
-import { formatINR, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES } from "@/lib/types";
+import { formatINR, formatAgeShort, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_STYLES } from "@/lib/types";
 import { istDayString, longDate, rangeToInstants, resolveRange, shortDate } from "@/lib/date-range";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { EmptyState } from "@/components/EmptyState";
@@ -206,7 +206,7 @@ export default async function ReferralDoctorPage({
                         </Link>
                         <span className="ml-2 font-mono text-xs text-slate-400">{b.patient.uhid}</span>
                         <span className="ml-2 text-xs text-slate-400">
-                          {b.patient.age}y · {b.patient.gender}
+                          {formatAgeShort(b.patient.age)} · {b.patient.gender}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-slate-600">
