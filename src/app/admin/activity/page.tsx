@@ -13,6 +13,7 @@ const ROLE_BADGE: Record<Role, string> = {
   RECEPTIONIST: "bg-sky-100 text-sky-700 ring-sky-200",
   RADIOLOGIST: "bg-brand-50 text-brand-700 ring-brand-200",
   LAB_TECHNICIAN: "bg-amber-100 text-amber-800 ring-amber-200",
+  FINANCE: "bg-amber-100 text-amber-800 ring-amber-200",
 };
 
 function RoleBadge({ role }: { role: Role }) {

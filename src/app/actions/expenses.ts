@@ -9,7 +9,7 @@ import { EXPENSE_CATEGORIES, PAYMENT_METHODS, formatINR, rupeesToPaise } from "@
 import { isValidDay } from "@/lib/date-range";
 import type { ActionResult, ExpenseCategory, PaymentMethod } from "@/lib/types";
 
-/** ADMIN only — record money the centre spent. */
+/** ADMIN or FINANCE — record money the centre spent. */
 export async function createExpense(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
@@ -40,7 +40,7 @@ export async function createExpense(
   const spentAt = new Date(`${spentOn}T12:00:00+05:30`);
 
   try {
-    const result = await withRole("ADMIN", async (user) => {
+    const result = await withRole(["ADMIN", "FINANCE"], async (user) => {
       const expense = await prisma.expense.create({
         data: {
           category: category as ExpenseCategory,
@@ -61,14 +61,17 @@ export async function createExpense(
       );
       return expense;
     });
-    if (result.ok) revalidatePath("/admin/finance");
+    if (result.ok) {
+      revalidatePath("/admin/finance");
+      revalidatePath("/finance");
+    }
     return result;
   } catch (err) {
     return { ok: false, error: describePrismaError(err, "Could not record the expense.") };
   }
 }
 
-/** ADMIN only — remove an expense entered by mistake. */
+/** ADMIN or FINANCE — remove an expense entered by mistake. */
 export async function deleteExpense(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
@@ -76,7 +79,7 @@ export async function deleteExpense(
   if (!id) return { ok: false, error: "Missing expense id." };
 
   try {
-    const result = await withRole("ADMIN", async (user) => {
+    const result = await withRole(["ADMIN", "FINANCE"], async (user) => {
       const existing = await prisma.expense.findUnique({
         where: { id },
         select: { category: true, amount: true, vendor: true },
@@ -90,7 +93,10 @@ export async function deleteExpense(
       );
       return { id };
     });
-    if (result.ok) revalidatePath("/admin/finance");
+    if (result.ok) {
+      revalidatePath("/admin/finance");
+      revalidatePath("/finance");
+    }
     return result;
   } catch (err) {
     if (err instanceof Error && err.message === "NOT_FOUND") {

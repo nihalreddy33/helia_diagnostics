@@ -34,6 +34,12 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: "/radiologist/print", label: "Print Hub" },
   ],
   LAB_TECHNICIAN: [{ href: "/lab", label: "Worklist" }],
+  FINANCE: [
+    { href: "/finance", label: "Overview", exact: true },
+    { href: "/finance/collections", label: "Collections" },
+    { href: "/finance/bills", label: "Bills" },
+    { href: "/finance/exports", label: "Exports" },
+  ],
 };
 
 export const HOME_BY_ROLE: Record<Role, string> = {
@@ -41,4 +47,5 @@ export const HOME_BY_ROLE: Record<Role, string> = {
   RECEPTIONIST: "/receptionist",
   RADIOLOGIST: "/radiologist",
   LAB_TECHNICIAN: "/lab",
+  FINANCE: "/finance",
 };

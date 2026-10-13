@@ -37,6 +37,7 @@ export const ACTION_LABELS: Record<string, string> = {
   BILL_CREATED: "Raised bill",
   EXPENSE_RECORDED: "Recorded expense",
   EXPENSE_DELETED: "Deleted expense",
+  DATA_EXPORTED: "Exported financial data",
   REPORT_APPROVED: "Approved radiology report",
   REPORT_AMENDED: "Amended approved report",
   AI_DRAFTED: "Drafted a report with AI",

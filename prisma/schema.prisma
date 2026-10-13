@@ -15,6 +15,9 @@ enum Role {
   RECEPTIONIST
   RADIOLOGIST
   LAB_TECHNICIAN
+  // Accounts team: reads collections, billing and expenses, exports them for
+  // GST / TDS / income-tax filing. No patient, report or catalogue access.
+  FINANCE
 }
 
 enum Department {

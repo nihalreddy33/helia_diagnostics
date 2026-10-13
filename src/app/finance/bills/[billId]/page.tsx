@@ -1,0 +1,169 @@
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/db-helpers";
+import { DbErrorNotice } from "@/components/DbErrorNotice";
+import { PrintToolbar } from "@/components/receptionist/PrintToolbar";
+import {
+  formatAge,
+  formatINR,
+  formatDateTimeIST,
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_STATUS_LABELS,
+} from "@/lib/types";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Read-only invoice for the finance team. Same sheet reception prints, minus
+ * the controls that change it: no cancel, no WhatsApp send. The toolbar still
+ * offers Print, which is what an accountant actually needs from it.
+ */
+export default async function FinanceInvoicePage({
+  params,
+}: {
+  params: Promise<{ billId: string }>;
+}) {
+  const { billId } = await params;
+
+  const bill = await safeQuery(() =>
+    prisma.bill.findUnique({
+      where: { id: billId },
+      include: { patient: true, receptionist: true, items: true },
+    }),
+  );
+
+  if (bill === null) {
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-8">
+        <DbErrorNotice />
+      </main>
+    );
+  }
+  if (!bill) notFound();
+
+  return (
+    <div className="print-page">
+      <PrintToolbar backHref="/finance/bills" backLabel="Back to Bills" />
+
+      {bill.cancelledAt && (
+        <div className="no-print mx-auto max-w-4xl px-4 py-3">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <span className="font-semibold">Bill cancelled</span> on{" "}
+            {formatDateTimeIST(bill.cancelledAt)}
+            {bill.cancelReason && <> · {bill.cancelReason}</>}
+            {bill.refundAmount > 0 && <> · refunded {formatINR(bill.refundAmount)}</>}
+          </div>
+        </div>
+      )}
+
+      <article className="print-sheet">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="letterhead print-letterhead" src="/letterhead.png" alt="" aria-hidden="true" />
+        <div className="print-body">
+          <header className="flex items-start justify-end">
+            <div className="text-right">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Invoice</p>
+              <p className="font-mono text-sm font-semibold text-slate-800">{bill.invoiceNo}</p>
+              {bill.legacyBillNo && (
+                <p className="font-mono text-xs text-slate-400">old ref {bill.legacyBillNo}</p>
+              )}
+              <p className="mt-1 text-xs text-slate-500">{formatDateTimeIST(bill.createdAt)}</p>
+              {bill.cancelledAt && (
+                <p className="mt-1 text-xs font-bold uppercase tracking-wider text-red-600">
+                  Cancelled
+                </p>
+              )}
+            </div>
+          </header>
+
+          <hr className="mt-6 border-slate-200" />
+
+          <section className="mt-6 grid grid-cols-2 gap-6 text-sm">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                Billed to
+              </p>
+              <p className="mt-1 font-semibold text-slate-900">{bill.patient.name}</p>
+              <p className="text-xs text-slate-500">
+                <span className="font-mono">{bill.patient.uhid}</span> ·{" "}
+                {formatAge(bill.patient.age)} · {bill.patient.gender}
+              </p>
+              {bill.patient.mobile && (
+                <p className="text-xs text-slate-500">Mobile: {bill.patient.mobile}</p>
+              )}
+              {bill.referringDoctor && (
+                <p className="mt-1 text-xs text-slate-500">Ref. by: {bill.referringDoctor}</p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                Payment
+              </p>
+              <p className="mt-1 text-sm font-medium text-slate-800">
+                {PAYMENT_STATUS_LABELS[bill.status]}
+                <span className="text-slate-500">
+                  {" "}
+                  · {bill.paymentMethod ? PAYMENT_METHOD_LABELS[bill.paymentMethod] : "mode not recorded"}
+                </span>
+              </p>
+            </div>
+          </section>
+
+          <table className="mt-8 w-full text-sm">
+            <thead>
+              <tr className="border-y border-slate-200 text-left text-[10px] uppercase tracking-wider text-slate-400">
+                <th className="py-2 font-semibold">Service</th>
+                <th className="py-2 text-center font-semibold">Qty</th>
+                <th className="py-2 text-right font-semibold">Rate</th>
+                <th className="py-2 text-right font-semibold">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bill.items.map((it) => (
+                <tr key={it.id} className="border-b border-slate-100">
+                  <td className="py-2 text-slate-800">{it.description}</td>
+                  <td className="py-2 text-center text-slate-600">{it.quantity}</td>
+                  <td className="py-2 text-right font-mono text-slate-600">{formatINR(it.unitPrice)}</td>
+                  <td className="py-2 text-right font-mono text-slate-800">{formatINR(it.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <section className="mt-6 flex justify-end">
+            <dl className="w-64 space-y-1.5 text-sm">
+              <TotalRow label="Subtotal" value={formatINR(bill.subtotal)} />
+              {bill.discount > 0 && (
+                <TotalRow label="Discount" value={`− ${formatINR(bill.discount)}`} />
+              )}
+              <div className="flex justify-between border-t border-slate-200 pt-2">
+                <dt className="font-semibold text-slate-900">Total</dt>
+                <dd className="font-mono text-base font-bold text-slate-900">
+                  {formatINR(bill.total)}
+                </dd>
+              </div>
+              <TotalRow label="Paid" value={formatINR(bill.amountPaid)} />
+              <TotalRow label="Balance" value={formatINR(bill.total - bill.amountPaid)} />
+            </dl>
+          </section>
+
+          <footer className="mt-12 pt-4 text-center text-[10px] leading-5 text-slate-400">
+            <p>
+              {bill.receptionist ? `Billed by ${bill.receptionist.name}. ` : ""}
+              This is a computer-generated invoice.
+            </p>
+          </footer>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function TotalRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <dt className="text-slate-500">{label}</dt>
+      <dd className="font-mono text-slate-700">{value}</dd>
+    </div>
+  );
+}

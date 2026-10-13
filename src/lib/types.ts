@@ -131,6 +131,7 @@ export const ROLES: readonly Role[] = [
   "RECEPTIONIST",
   "RADIOLOGIST",
   "LAB_TECHNICIAN",
+  "FINANCE",
 ];
 
 export const MODALITIES: readonly Modality[] = ["XRAY", "CT", "MRI", "USG"];
@@ -142,6 +143,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   RECEPTIONIST: "Receptionist",
   RADIOLOGIST: "Radiologist",
   LAB_TECHNICIAN: "Lab Technician",
+  FINANCE: "Finance",
 };
 
 export const DEPARTMENTS: readonly Department[] = ["RADIOLOGY", "LAB", "OTHER"];
