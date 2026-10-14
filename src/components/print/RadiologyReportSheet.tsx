@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { formatAge, MODALITY_LABELS } from "@/lib/types";
+import { LetterheadSheet } from "@/components/print/LetterheadSheet";
 
 export type RadiologyReportForPrint = Prisma.ReportGetPayload<{
   include: { patient: true; template: true; radiologist: true };
@@ -38,10 +39,7 @@ export function RadiologyReportSheet({ report }: { report: RadiologyReportForPri
     : "";
 
   return (
-    <article className="print-sheet">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="letterhead print-letterhead" src="/letterhead.png" alt="" aria-hidden="true" />
-      <div className="print-body">
+    <LetterheadSheet>
         <section className="border-y border-slate-200 py-6">
           <dl className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3">
             <MetaItem label="UHID" value={report.patient.uhid} />
@@ -88,7 +86,6 @@ export function RadiologyReportSheet({ report }: { report: RadiologyReportForPri
         <footer className="mt-12 pt-4 text-center text-[10px] leading-5 text-slate-400">
           <p>This is an electronically generated report. Please correlate clinically.</p>
         </footer>
-      </div>
-    </article>
+    </LetterheadSheet>
   );
 }

@@ -40,38 +40,46 @@
   width: 210mm;
   min-height: 297mm;
   margin: 1rem auto;
-  /* Content sits in the white body area of the letterhead: clear of the printed
-     header band (~top) and footer bar + address (~bottom). */
-  padding: 26mm 16mm 30mm;
-  background: #ffffff;
+  /* Side margins only. The header and footer bands are reserved per page by
+     the LetterheadSheet table's repeated <thead>/<tfoot> spacer rows, so they
+     apply on every printed page rather than once for the whole document. */
+  padding: 0 16mm;
+  /* On screen the artwork tiles once per A4 height, so a report longer than a
+     page previews as consecutive letterhead pages instead of one stretched
+     image. (Print swaps this for a fixed <img>, below.) */
+  background: #ffffff url("/letterhead.png") 0 0 / 210mm 297mm repeat-y;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
   color: #0f172a;
 }
 
-/* Full-page letterhead image behind the report content. An <img> (not a CSS
-   background) prints reliably by default. */
+/* The letterhead <img> exists for print, where a fixed element is repeated on
+   every page. On screen the tiled background above does that job instead. */
 .print-letterhead {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  z-index: 0;
-  pointer-events: none;
+  display: none;
 }
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.print-table > thead > tr > td,
+.print-table > tfoot > tr > td,
+.print-table > tbody > tr > td {
+  padding: 0;
+  vertical-align: top;
+}
+/* Heights of the artwork's header band (logo + bars, ≈24.5mm) and footer band
+   (address + bar from ≈272mm), with a little clearance. */
+.print-head-space {
+  height: 26mm;
+}
+.print-foot-space {
+  height: 30mm;
+}
+
 .print-body {
   position: relative;
   z-index: 1;
-}
-
-/* Responsive A4 wrapper (patient-facing share page). The inner sheet is a fixed
-   A4 width scaled down by JS to fit the viewport; the outer clips the overflow. */
-.a4-frame {
-  width: 100%;
-  overflow: hidden;
-}
-.a4-inner {
-  margin: 0 auto;
 }
 
 /* Letterhead toggle: when the .letterhead-toggle checkbox is unchecked, hide the
@@ -79,6 +87,9 @@
    printing on pre-printed stationery. Pure CSS — applies on screen and in print. */
 .print-page:has(.letterhead-toggle:not(:checked)) .letterhead {
   visibility: hidden;
+}
+.print-page:has(.letterhead-toggle:not(:checked)) .print-sheet {
+  background-image: none;
 }
 
 @media print {
@@ -101,10 +112,46 @@
   }
   .print-sheet {
     width: auto;
-    min-height: auto;
+    /* !important: ScreenPaginator sets an inline min-height on screen to pad
+       the preview to whole pages; print must not inherit it. */
+    min-height: auto !important;
     margin: 0;
-    padding: 26mm 16mm 30mm;
+    padding: 0 16mm;
     box-shadow: none;
+    background-image: none;
+  }
+  /* Screen-only page-break gaps; real pagination comes from thead/tfoot. */
+  .screen-page-gap {
+    display: none !important;
+  }
+  /* Fixed elements are repeated on every printed page, so one full-bleed
+     letterhead appears behind each page at true A4 size — never stretched. */
+  .print-letterhead {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 210mm;
+    height: 297mm;
+    max-width: none;
+    object-fit: fill;
+    z-index: 0;
+    pointer-events: none;
+  }
+  /* Browsers repeat these on every page: that is what keeps each page's
+     content out of the header and footer bands. */
+  .print-table > thead {
+    display: table-header-group;
+  }
+  .print-table > tfoot {
+    display: table-footer-group;
+  }
+  /* Keep a result row or list item whole rather than splitting it at a page
+     boundary. */
+  .print-body tr,
+  .print-body li {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   /* Undo the on-screen scaling so the share page prints at true A4. */
   .a4-frame {

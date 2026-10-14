@@ -4,6 +4,7 @@ import { safeQuery } from "@/lib/db-helpers";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { PrintToolbar } from "@/components/receptionist/PrintToolbar";
 import { CancelBillButton } from "@/components/receptionist/CancelBillButton";
+import { LetterheadSheet } from "@/components/print/LetterheadSheet";
 import {
   formatAge,
   formatINR,
@@ -69,10 +70,7 @@ export default async function InvoicePage({
         )}
       </div>
 
-      <article className="print-sheet">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="letterhead print-letterhead" src="/letterhead.png" alt="" aria-hidden="true" />
-        <div className="print-body">
+      <LetterheadSheet>
         <header className="flex items-start justify-end">
           <div className="text-right">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Invoice</p>
@@ -155,8 +153,7 @@ export default async function InvoicePage({
             This is a computer-generated invoice.
           </p>
         </footer>
-        </div>
-      </article>
+      </LetterheadSheet>
     </div>
   );
 }

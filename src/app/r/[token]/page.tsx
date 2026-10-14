@@ -7,6 +7,7 @@ import { PrintButton } from "@/components/receptionist/PrintButton";
 import { A4Frame } from "@/components/A4Frame";
 import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { groupResults } from "@/lib/lab-package";
+import { LetterheadSheet } from "@/components/print/LetterheadSheet";
 import {
   MODALITY_LABELS,
   LAB_FLAG_LABELS,
@@ -101,15 +102,11 @@ export default async function PublicSharePage({
 
         {/* Official Helia letterhead sheet, scaled to fit the screen; prints A4. */}
         <A4Frame>
-          <article className="print-sheet">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="letterhead print-letterhead" src="/letterhead.png" alt="" aria-hidden="true" />
-            <div className="print-body">
+          <LetterheadSheet>
               {record.kind === "report" && <ReportView r={record.data} />}
               {record.kind === "lab" && <LabView r={record.data} />}
               {record.kind === "bill" && <BillView b={record.data} />}
-            </div>
-          </article>
+          </LetterheadSheet>
         </A4Frame>
 
         <p className="mt-4 text-center text-xs text-slate-400 no-print">

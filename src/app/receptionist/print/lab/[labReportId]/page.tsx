@@ -5,6 +5,7 @@ import { DbErrorNotice } from "@/components/DbErrorNotice";
 import { PrintToolbar } from "@/components/receptionist/PrintToolbar";
 import { LAB_FLAG_LABELS, LAB_FLAG_STYLES, formatAge } from "@/lib/types";
 import { groupResults } from "@/lib/lab-package";
+import { LetterheadSheet } from "@/components/print/LetterheadSheet";
 
 export const dynamic = "force-dynamic";
 
@@ -74,10 +75,7 @@ export default async function LabReportPrintPage({
         }
       />
 
-      <article className="print-sheet">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="letterhead print-letterhead" src="/letterhead.png" alt="" aria-hidden="true" />
-        <div className="print-body">
+      <LetterheadSheet>
         <section className="border-y border-slate-200 py-6">
           <dl className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3">
             <MetaItem label="UHID" value={report.patient.uhid} />
@@ -154,8 +152,7 @@ export default async function LabReportPrintPage({
         <footer className="mt-12 pt-4 text-center text-[10px] leading-5 text-slate-400">
           <p>This is an electronically generated report. Results should be correlated clinically.</p>
         </footer>
-        </div>
-      </article>
+      </LetterheadSheet>
     </div>
   );
 }
